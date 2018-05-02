@@ -9,7 +9,6 @@ import numpy as np
 import logging
 
 import face_recognition
-from skimage import io
 from PIL import Image
 import cv2
 
@@ -17,9 +16,10 @@ from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.dialects.postgresql import ARRAY
 
 app = Flask(__name__)
-app.config["SQLALCHEMY_DATABASE_URI"] = "postgresql://postgres:hello123@localhost/face_recognition_db"
+app.config["SQLALCHEMY_DATABASE_URI"] = "postgresql://postgres:test@localhost/face_recognition_db"
 api = Api(app)
 db = SQLAlchemy(app)
+from models import Person, Cluster
 
 DIR = os.path.abspath(os.path.dirname(__file__))
 LOCATION = os.path.join(DIR, 'static/images')
@@ -28,34 +28,6 @@ known_face_encodings = []
 known_face_names = []
 known_person_faces = []
 known_person_photos = []
-
-class Person(db.Model):
-    Id = db.Column(db.Integer, primary_key=True)
-    face_id = db.Column(db.String(64))
-    photo_id = db.Column(db.String(64))
-    face_embedding = db.Column(ARRAY(db.Float))
-    cluster_id = db.Column(db.Integer, db.ForeignKey('cluster.cluster_id'))
-
-    def __init__(self, face_id, photo_id, face_embedding, cluster_id):
-        self.face_id = face_id
-        self.photo_id = photo_id
-        self.face_embedding = face_embedding
-        self.cluster_id = cluster_id
-    
-    def __repr__(self):
-        return '<Person %r>' % self.face_id
-
-class Cluster(db.Model):
-    cluster_id = db.Column(db.Integer, primary_key=True)
-    cluster_name = db.Column(db.String(128))
-    mean_encoding = db.Column(ARRAY(db.Float))
-    def __init__(self, mean_encoding, cluster_name):
-        self.cluster_name = cluster_name
-        self.mean_encoding = mean_encoding
-    
-    def __repr__(self):
-        return '<Cluster %r>' % self.cluster_id
-
 
 @app.route("/")
 def index():
@@ -77,14 +49,15 @@ class RecognizeFace(Resource):
         if args['image']:
             image = face_recognition.load_image_file(args['image'])
             faceLocations = face_recognition.face_locations(image)
-            query = db.session.query(Cluster).all()
-            knownFaceEncodings = [_.mean_encoding for _ in query]
-            knownFaceNames = [_.cluster_name for _ in query]
+            person_query = db.session.query(Person).all()
+            knownFaceEncodings = [_.mean_encoding for _ in person_query]
+            knownFaceNames = [_.name for _ in person_query]
             faceEncodings = face_recognition.face_encodings(image, faceLocations)
             faceNames = []
             for faceEncoding in faceEncodings:
-                matches = face_recognition.compare_faces(knownFaceEncodings, faceEncoding)
+                matches = face_recognition.compare_faces(knownFaceEncodings, faceEncoding, tolerance=0.4)
                 name = "Unknown"
+                # Make a face object and save to database with unknown name
 
                 # If a match was found in known_face_encodings, just use the first one.
                 if True in matches:
@@ -98,22 +71,24 @@ class RecognizeFace(Resource):
         else:
             return jsonify({"status": 406, "message": "Please Provide Image."})
             
-api.add_resource(RecognizeFace, '/api/get_faces')
+api.add_resource(RecognizeFace, '/api/photo/get_faces')
 
 
 
 class FindFace(Resource):
     def post(self):
         parse = reqparse.RequestParser()
+        # reading image
         parse.add_argument('image', type=werkzeug.FileStorage, location='files')
+        # reading the post request into dict
         args = parse.parse_args()
         message = ""
         if args['image']:
             image = face_recognition.load_image_file(args['image'])
             faceLocations = face_recognition.face_locations(image)
-            query = db.session.query(Cluster).all()
+            query = db.session.query(Person).all()
             knownFaceEncodings = [_.mean_encoding for _ in query]
-            knownFaceID = [_.cluster_id for _ in query]
+            knownFaceID = [_.id for _ in query]
             # faceEncodings = face_recognition.face_encodings(image, faceLocations)
             photoId = str(uuid.uuid4())
             for face in faceLocations:
@@ -122,18 +97,21 @@ class FindFace(Resource):
                 faceId = str(uuid.uuid4())
                 filename = faceId  + ".jpeg"
                 img_path = os.path.join(app.config['LOCATION'], filename)
+                # changing the color format of personFace from BGR to RGB 
                 personFace = cv2.cvtColor(personFace, cv2.COLOR_BGR2RGB)
+                # saving the thumbnail of the face at img_path
                 cv2.imwrite(img_path, personFace)
+                # face encoding
                 encoding = face_recognition.face_encodings(face_recognition.load_image_file(img_path))[0]
-            # faceId = str(uuid.uuid4())
-            # for faceEncoding in faceEncodings:
+                # faceId = str(uuid.uuid4())
+                # for faceEncoding in faceEncodings:
                 matches = face_recognition.compare_faces(knownFaceEncodings, encoding)
 
                 # If a match was found in known_face_encodings, just use the first one.
                 if True in matches:
                     firstMatchIndex = matches.index(True)
                     ID = knownFaceID[firstMatchIndex]
-                    person = Person(faceId, photoId, list(encoding), ID)
+                    person = Face(faceId, photoId, list(encoding), ID)
                     message += "Id {0} added, ".format(ID)
                 else:
                     # clusterId = query[0].cluster_id + 1
@@ -141,7 +119,7 @@ class FindFace(Resource):
                     db.session.add(cluster)
                     db.session.commit()
                     person = Person(faceId, photoId, list(encoding), cluster.cluster_id)
-                    # db.session.add(person)
+                    # db.session.add(person) === Callback to check if the object is created
                     message += "New Id {0} added, ".format(cluster.cluster_id)
                     # db.session.commit()
                 
@@ -155,7 +133,8 @@ class FindFace(Resource):
             return jsonify({"status": 200, "message": message})
         else:
             return jsonify({"status": 406, "message": "Provide Image."})
-api.add_resource(FindFace, '/api/find_face') 
+# api.add_resource(FindFace, '/api/find_face') 
+api.add_resource(FindFace, '/api/photo/find_face') 
 
 
 
@@ -177,6 +156,11 @@ class GetAllFaces(Resource):
         return jsonify({"new_faces": newFaces, "recognized_faces": recognizedFaces})
 
 api.add_resource(GetAllFaces, '/api/get_all_faces')
+
+
+
+
+
 
 
 
