@@ -1,5 +1,11 @@
 from datetime import datetime
 from hashlib import *
+from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy.dialects.postgresql import ARRAY
+
+from __init__ import app
+
+db = SQLAlchemy(app)
 
 class Photo(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -9,9 +15,9 @@ class Photo(db.Model):
     captions = db.Column(db.String(512))
 
 
-    def __init__(self, image_hash, image_path, added_on, captions):
+    def __init__(self, image_path, captions):
         self.image_path =  image_path
-        self.image_hash = _generate_md5()
+        self.image_hash = self._generate_md5()
         self.added_on = added_on
         self.captions = captions
 
@@ -70,7 +76,7 @@ class Person(db.Model):
     def __repr__(self):
         return '<Person %r>' % self.id
 
-    # to do 
+    # change function accorning to need
     def __update_average_face_encoding(self):
         encodings = []
         faces = self.faces.all()
@@ -85,7 +91,7 @@ class Person(db.Model):
 # to do many to many field
 class AlbumUser(db.Model):
     album_id = db.Column(db.Integer, primary_key=True)
-    title = db.Column(db.String(128), blank=True,null=True,max_length=512)
-    timestamp = db.Column(db.DateTime, unique=True, db_index=True)
-    created_on = db.Column(db.DateTime, auto_now=True,db_index=True)
+    title = db.Column(db.String(128))
+    timestamp = db.Column(db.DateTime, unique=True)
+    created_on = db.Column(db.DateTime, default=datetime.utcnow)
     # photos = db.relationship('Photo', ) # many to many

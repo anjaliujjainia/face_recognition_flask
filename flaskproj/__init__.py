@@ -12,14 +12,12 @@ import face_recognition
 from PIL import Image
 import cv2
 
-from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy.dialects.postgresql import ARRAY
-
 app = Flask(__name__)
-app.config["SQLALCHEMY_DATABASE_URI"] = "postgresql://postgres:test@localhost/face_recognition_db"
+# app.config["SQLALCHEMY_DATABASE_URI"] = "postgresql://postgres:test@localhost/face_recognition_db"
+app.config["SQLALCHEMY_DATABASE_URI"] = "postgresql://postgres:hello123@localhost/face_recognition_db"
 api = Api(app)
-db = SQLAlchemy(app)
-from models import Person, Cluster
+
+from models import Person, Cluster, Photo, Face
 
 DIR = os.path.abspath(os.path.dirname(__file__))
 LOCATION = os.path.join(DIR, 'static/images')
@@ -36,6 +34,11 @@ def index():
 def getFaceEncoding(image):
     face = cv2.imread(image)
     return face_recognition.face_encodings(face)[0]
+# Models : 
+#           Photo(image_hash, image_path, added_on, captions)
+#           Face(f_uuid, photo, encoding, person, location_top, location_bottom, location_left, location_right, is_labeled=False)
+#           Person(mean_encoding, name, cluster_id)
+#           AlbumUser
 
 
 
@@ -44,20 +47,27 @@ class RecognizeFace(Resource):
         # Making request for image
         parse = reqparse.RequestParser()
         parse.add_argument('image', type=werkzeug.FileStorage, location='files')
+        parse.add_argument('caption', type=str)
         args = parse.parse_args()
 
         if args['image']:
             image = face_recognition.load_image_file(args['image'])
+            caption = args['caption']
             faceLocations = face_recognition.face_locations(image)
             person_query = db.session.query(Person).all()
             knownFaceEncodings = [_.mean_encoding for _ in person_query]
             knownFaceNames = [_.name for _ in person_query]
             faceEncodings = face_recognition.face_encodings(image, faceLocations)
             faceNames = []
+            photoId = str(uuid.uuid4())
+            photoObj = Photo(os.path.join(app.config['LOCATION'], photoId+".jpeg"), caption)
+            db.session.add(photoObj)
+            db.session.commit()
             for faceEncoding in faceEncodings:
                 matches = face_recognition.compare_faces(knownFaceEncodings, faceEncoding, tolerance=0.4)
                 name = "Unknown"
                 # Make a face object and save to database with unknown name
+                faceObj = Face()
 
                 # If a match was found in known_face_encodings, just use the first one.
                 if True in matches:
