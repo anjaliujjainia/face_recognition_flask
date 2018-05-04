@@ -273,11 +273,31 @@ class GetData(Resource):
 api.add_resource(GetData, '/api/getall')
 '''
 class GetPersonFacesForClass(Resource):
-    # in agrs a class_id is given
-    def get(self, class_id):
+    # in agrs a group_id is given
+    def get(self, group_id):
+        personObj = db.session.query(Person).filter_by(cluster_id=group_id).all()
+        pdb.set_trace()
+        faces = {}
+        faces[group_id] = {}
+        # faces[group_id][personObj.id] = {}
 
-        return jsonify({"class_id": class_id})
-api.add_resource(GetPersonFacesForClass, '/api/get_data_by_class/<int:class_id>')
+        
+
+
+        return jsonify({"group_id": group_id})
+api.add_resource(GetPersonFacesForClass, '/api/get_data_by_class/<int:group_id>')
+
+from flask import request
+class Dummy(Resource):
+    def post(self):
+        data = request.get_json(force=True)
+        # parse = reqparse.RequestParser()
+        # parse.add_argument('image', type=list, location='json')
+        # args = parse.parse_args()
+
+        return jsonify({"images": data})
+api.add_resource(Dummy, '/api/dummy')
+
 
 if __name__ == "__main__":
     manager.run()
