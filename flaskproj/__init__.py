@@ -17,6 +17,8 @@ from PIL import Image
 from skimage import io
 import cv2
 from urllib.request import urlopen
+import pdb
+import hashlib
 
 app = Flask(__name__)
 app.config["SQLALCHEMY_DATABASE_URI"] = "postgresql://postgres:test@localhost/face_recognition_db"
@@ -103,7 +105,7 @@ class RecognizeFace(Resource):
         # parse.add_argument('image', type = str) # for url image
         parse.add_argument('caption', type = str)
         args = parse.parse_args()
-
+        pdb.set_trace()
         if args['image']:
             img = args['image']
             # img = getImageFromURL(img) # for url image
@@ -123,9 +125,11 @@ class RecognizeFace(Resource):
             photoId = str(uuid.uuid4())
             # URL of the image from the server
             # img_hash = getMd5Sum(img) # for url image
-            image_hash = str(uuid.uuid4())
+            # image_hash = str(uuid.uuid4())
+
+            # url of image from arguments(ruby -------TO DO --------------) 
             image_path = os.path.join(app.config['LOCATION'], photoId+".jpeg")
-            img_hash = generate_md5(image_path)
+            image_hash = generate_md5(image_path)
             # img_path = img # for url image
             photoObj = Photo(image_path, image_hash, caption)
             db.session.add(photoObj)
@@ -170,6 +174,8 @@ class FindFace(Resource):
         parse = reqparse.RequestParser()
         # reading image
         parse.add_argument('image', type=werkzeug.FileStorage, location='files')
+        # parse.add_argument('image', type = str) # for url image
+
         # reading the post request into dict
         args = parse.parse_args()
         message = ""
@@ -247,68 +253,6 @@ class GetAllFaces(Resource):
 
 api.add_resource(GetAllFaces, '/api/get_all_faces')
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-class ImageApi(Resource):
-    def get(self):
-        return jsonify( { 'task': "GET" } )
-    def post(self):
-        parse = reqparse.RequestParser()
-        parse.add_argument('image', type=werkzeug.FileStorage, location='files')
-        app.logger.debug("this is a DEBUG message")
-        args = parse.parse_args()
-
-        image = args['image']
-        if image:
-            _ = face_recognition.load_image_file(image)
-            faceLocations = face_recognition.face_locations(_)
-            faceCount = len(faceLocations)
-            faceData = []
-            encodings = {}
-            photoId = str(uuid.uuid4())
-            for face in faceLocations:
-                top, right, bottom, left = face
-                faceData.append((top, right, bottom, left))
-                personFace = _[top:bottom, left:right]
-                # person = Image.fromarray(personFace)
-                faceId = str(uuid.uuid4())
-                filename = faceId  + ".jpeg"
-                img_path = os.path.join(app.config['LOCATION'], filename)
-                personFace = cv2.cvtColor(personFace, cv2.COLOR_BGR2RGB)
-                cv2.imwrite(img_path, personFace)
-                encoding = face_recognition.face_encodings(face)[0]
-
-                persons = db.query(Person).all()
-                known_face_encodings = [_.face_encodings for _ in persons]
-                matches = face_recognition.compare_faces(known_face_encodings, encoding)
-                # encoding = getFaceEncoding(img_path)
-                # face_id, photo_id, face_name, face_embedding)
-                pPerson = Person(faceId, photoId, "unknown", list(encoding))
-                db.session.add(pPerson)
-                db.session.commit()
-                db.session.close()
-                # person_encoding = face_recognition.face_encodings(img_path)
-                encodings[faceId] = str(len(encoding))
-                # person.save(os.path.join(app.config['LOCATION'], filename))
-            return jsonify( { 'task': str(matches), "no_of_faces": faceCount, "face_data": faceData, "face_encodings": encodings } )
-        else:
-            return jsonify( { 'task': "POST Not Found" } )
-api.add_resource(ImageApi, '/api')
-
 class GetData(Resource):
     def get(self):
         persons = db.session.query(Person).all()
@@ -328,6 +272,12 @@ class GetData(Resource):
         return jsonify({"persons": str(persons), "person": str(personDict), "Length": str(len(personList))})
 api.add_resource(GetData, '/api/getall')
 '''
+class GetPersonFacesForClass(Resource):
+    # in agrs a class_id is given
+    def get(self, class_id):
+
+        return jsonify({"class_id": class_id})
+api.add_resource(GetPersonFacesForClass, '/api/get_data_by_class/<int:class_id>')
 
 if __name__ == "__main__":
     manager.run()

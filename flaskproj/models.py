@@ -14,16 +14,20 @@ db = SQLAlchemy(app)
 
 class Photo(db.Model):
     id = db.Column(db.Integer, primary_key=True)
+    ruby_id = db.Column(db.Integer)
     image_hash = db.Column(db.String(512), unique=True)
-    image_path = db.Column(db.String(512))
+    image_url = db.Column(db.String(512))
     added_on = db.Column(db.DateTime, default=datetime.now)
     captions = db.Column(db.String(512))
+    group_id = db.Column(db.String(512))
 
 
-    def __init__(self, image_path, image_hash, captions):
-        self.image_path =  image_path
+    def __init__(self, image_url, ruby_id, image_hash, captions, group_id):
+        self.image_url =  image_url
+        self.ruby_id =  ruby_id
         self.image_hash = image_hash
         self.captions = captions
+        self.group_id = group_id
 
     def __repr__(self):
         return '<Photo %r>' % self.id
@@ -65,14 +69,14 @@ class Person(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(128))
     mean_encoding = db.Column(ARRAY(db.Float))
-    cluster_id = db.Column(db.Integer)
+    group_id = db.Column(db.Integer)
     kid_id = db.Column(db.Integer)
     is_labeled = db.Column(db.Boolean)
 
-    def __init__(self, mean_encoding, name, cluster_id=None, kid_id = None, is_labeled=False):
+    def __init__(self, mean_encoding, name, group_id=None, kid_id = None, is_labeled=False):
         self.name = name
         self.mean_encoding = mean_encoding
-        self.cluster_id = cluster_id
+        self.group_id = group_id
         self.kid_id = kid_id
         self.is_labeled = is_labeled
 
