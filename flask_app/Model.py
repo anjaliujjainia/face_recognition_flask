@@ -1,14 +1,12 @@
+from flask_app.app import db
+
 from datetime import datetime
-from hashlib import *
-from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.dialects.postgresql import ARRAY
 
-from __main__ import app
-from flask_migrate import Migrate
 
 import numpy as np
 
-db = SQLAlchemy(app)
+# db = SQLAlchemy(app)
 # migrate = Migrate(app, db) 
 
 

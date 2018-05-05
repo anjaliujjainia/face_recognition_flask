@@ -1,4 +1,4 @@
-from flask import Flask, Response, jsonify
+from flask import Flask, Response, jsonify, request, abort
 # from flask.ext.script import Manager
 # from flask.ext.migrate import Migrate, MigrateCommand
 from flask_script import Manager, Server
@@ -19,11 +19,39 @@ import cv2
 from urllib.request import urlopen
 import pdb
 import hashlib
+from flask_sqlalchemy import SQLAlchemy
+from instance.config import *
 
+# def create_app(config_name):
 app = Flask(__name__)
-app.config["SQLALCHEMY_DATABASE_URI"] = "postgresql://postgres:test@localhost/face_recognition_db"
-# app.config["SQLALCHEMY_DATABASE_URI"] = "postgresql://postgres:hello123@localhost/face_recognition_db"
+app.config.from_object('instance.config.DevelopmentConfig')
+app.config.from_pyfile('../instance/config.py')
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+
+db = SQLAlchemy(app)
 api = Api(app)
+
+from flask_app import views
+# from models import Photo, Person, Face
+
+
+# db.init_app(app)
+    # import_all_views()
+    ########################
+
+    #   ALL APIs HERE     #
+    
+    ########################
+
+
+
+
+
+    # return app
+
+
+'''
 
 from models import db  # <-- this needs to be placed after app is created
 migrate = Migrate(app, db)
@@ -42,10 +70,6 @@ known_face_encodings = []
 known_face_names = []
 known_person_faces = []
 known_person_photos = []
-
-@app.route("/")
-def index():
-    return Response("Hello World!"), 200
 
 def getFaceEncoding(image):
     face = cv2.imread(image)
@@ -169,6 +193,7 @@ class RecognizeFace(Resource):
 api.add_resource(RecognizeFace, '/api/photo/get_faces')
 
 '''
+'''
 class FindFace(Resource):
     def post(self):
         parse = reqparse.RequestParser()
@@ -272,10 +297,11 @@ class GetData(Resource):
         return jsonify({"persons": str(persons), "person": str(personDict), "Length": str(len(personList))})
 api.add_resource(GetData, '/api/getall')
 '''
+'''
 class GetPersonFacesForClass(Resource):
     # in agrs a group_id is given
     def get(self, group_id):
-        personObj = db.session.query(Person).filter_by(cluster_id=group_id).all()
+        personObj = db.session.query(Person).filter_by(group_id=group_id).all()
         pdb.set_trace()
         faces = {}
         faces[group_id] = {}
@@ -297,7 +323,3 @@ class Dummy(Resource):
 
         return jsonify({"images": data})
 api.add_resource(Dummy, '/api/dummy')
-
-
-if __name__ == "__main__":
-    manager.run()
