@@ -323,3 +323,4 @@ class Dummy(Resource):
 
         return jsonify({"images": data})
 api.add_resource(Dummy, '/api/dummy')
+'''
