@@ -5,7 +5,7 @@ class Config(object):
     DEBUG = False
     CSRF_ENABLED = True
     # SECRET = os.getenv('SECRET')
-    SQLALCHEMY_DATABASE_URI = 'postgresql://postgres:test@localhost/face_recognition_db'
+    SQLALCHEMY_DATABASE_URI = 'postgresql://postgres:hello123@localhost/face_recognition_db'
 
 class DevelopmentConfig(Config):
     """Configurations for Development."""
