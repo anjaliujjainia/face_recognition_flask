@@ -109,13 +109,22 @@ class GetFaces(Resource):
                         personObj = Model.Person(faceEncoding, name, group_id=group_id)
                         db.session.add(personObj)
                         db.session.commit()
+                        fetch_person_id = personObj.id
                     
                     # Make a face object and save to database with unknown name
                     top, right, bottom, left = faceLocations[i]
                     personFace = image[top:bottom, left:right]
+                    
                     faceObj = Model.Face(faceId, photoObj.id, faceEncoding, personObj.id, top, bottom, left , right)
                     db.session.add(faceObj)
                     db.session.commit()
+
+                    # if the person is new, set new face as its default
+                    if not True in matchedFacesBool: 
+                       personObj = db.session.query(Model.Person).filter_by(id=fetch_person_id).first()
+                       personObj.default_face = faceObj.id
+                       db.session.commit()
+                       
                     save_face_img(faceId, personFace, "face")
                 # INDENTATION END
             # CHECK INDENTATION AND DATA
