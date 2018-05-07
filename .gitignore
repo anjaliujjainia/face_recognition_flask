@@ -1,2 +1,3 @@
 flask_app/static
 images_database
+.pyc

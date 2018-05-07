@@ -33,7 +33,7 @@ from flask_app.resources.update_person_details import UpdatePersonDetails
 from flask_app.resources.get_person_face_for_kid import GetPersonFaceForKid
 
 # send a list of photos and it returns all the known or already existing faces with urls
-api.add_resource(GetFaces, '/api/photo/get_faces')
+api.add_resource(GetFaces, '/api/get_faces')
 # Give a group/class id to get all the people in the class with all the photos they belong in
 api.add_resource(GetPersonFacesForClass, '/api/get_data_by_class/<int:group_id>')
 # update person details 

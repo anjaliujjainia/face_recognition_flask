@@ -38,14 +38,15 @@ class Person(db.Model):
     group_id = db.Column(db.Integer) ## --- From which group/school ---
     kid_id = db.Column(db.Integer) ## ---  ---
     is_labeled = db.Column(db.Boolean) ## --- is person labeled (0-NO, 1-YES)---
+    default_face = db.Column(db.ForeignKey('face.id')) ## --- is person labeled (0-NO, 1-YES)---
 
-    def __init__(self, mean_encoding, name, group_id=None, kid_id = None, is_labeled=False):
+    def __init__(self, mean_encoding, name, group_id=None, kid_id = None, is_labeled=False, default_face = None):
         self.name = name
         self.mean_encoding = mean_encoding
         self.group_id = group_id
         self.kid_id = kid_id
         self.is_labeled = is_labeled
-
+        self.default_face = default_face
     
     def __repr__(self):
         return '<Person %r>' % self.id
