@@ -1,6 +1,7 @@
 from flask import request, jsonify
 from flask_restful import Resource, reqparse
 from flask_app import Model
+from flask_app.app import db
 
 class UpdatePersonDetails(Resource):
     def post(self):

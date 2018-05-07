@@ -30,6 +30,7 @@ db.init_app(app)
 from flask_app.resources.get_faces import GetFaces
 from flask_app.resources.get_data_by_class import GetPersonFacesForClass
 from flask_app.resources.update_person_details import UpdatePersonDetails
+from flask_app.resources.get_person_face_for_kid import GetPersonFaceForKid
 
 # send a list of photos and it returns all the known or already existing faces with urls
 api.add_resource(GetFaces, '/api/photo/get_faces')
@@ -37,3 +38,4 @@ api.add_resource(GetFaces, '/api/photo/get_faces')
 api.add_resource(GetPersonFacesForClass, '/api/get_data_by_class/<int:group_id>')
 # update person details 
 api.add_resource(UpdatePersonDetails, '/api/update_person_details')
+api.add_resource(GetPersonFaceForKid, '/api/get_person_face_for_kid/<int:kid_id>')

@@ -65,8 +65,11 @@ class GetFaces(Resource):
                 img = getImageFromURL(imageUrl) # for url image
                 # ---------------------- SAVING IMAGE -----------------
                 photoId = str(uuid.uuid4())
-
-                image = face_recognition.load_image_file(save_face_img(photoId, img, who='photo'))
+                errorImages = []
+                try:
+                    image = face_recognition.load_image_file(save_face_img(photoId, img, who='photo'))
+                except Exception as e:
+                    errorImages.append(imageUrl)
                 
                 
                 person_query = db.session.query(Model.Person).all()
@@ -121,9 +124,9 @@ class GetFaces(Resource):
             # CHECK INDENTATION AND DATA
 
             if len(faceNames) == 0:
-                return jsonify({"status": 200, "message": "No Known Faces Found."})
+                return jsonify({"status": 200, "message": "No Known Faces Found.", "Error Images": errorImages})
 
-            return jsonify({"status": 200, "message": "Faces Found.", "known_faces": str(faceNames)})
+            return jsonify({"status": 200, "message": "Faces Found.", "known_faces": str(faceNames), "Error Images": errorImages})
         else:
             return jsonify({"status": 406, "message": "Please Provide Data."})
 
