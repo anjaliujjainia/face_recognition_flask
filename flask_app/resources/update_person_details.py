@@ -1,6 +1,6 @@
 from flask import request, jsonify
 from flask_restful import Resource, reqparse
-from flask_app.Model import *
+from flask_app import Model
 
 class UpdatePersonDetails(Resource):
     def post(self):
@@ -10,7 +10,7 @@ class UpdatePersonDetails(Resource):
             person_name = data["person_name"]
             kid_id = data["kid_id"]
 
-            person = db.session.query(Person).filter_by(id=person_id).first()
+            person = db.session.query(Model.Person).filter_by(id=person_id).first()
             person.name = person_name
             person.kid_id = kid_id
             db.session.commit()
