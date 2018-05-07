@@ -75,12 +75,12 @@ class Face(db.Model):
     location_left = db.Column(db.Integer) ## --- Location of face in photo ---
     location_right = db.Column(db.Integer) ## --- Location of face in photo ---
 
-    def __init__(self, f_uuid, photo_id, encoding, person, location_top, location_bottom, location_left, location_right, person_is_labeled = False):
+    def __init__(self, f_uuid, photo_id, encoding, person, image_path, location_top, location_bottom, location_left, location_right, person_is_labeled = False):
         self.id = f_uuid
         self.photo = photo_id
         self.encoding = encoding
         self.person = person
-        self.image_path = str(f_uuid) + '.jpg'
+        self.image_path = image_path
 
         self.location_top = location_top
         self.location_bottom = location_bottom

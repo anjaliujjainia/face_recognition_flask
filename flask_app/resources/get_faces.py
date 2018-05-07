@@ -75,6 +75,8 @@ class GetFaces(Resource):
                 errorImages = []
                 try:
                     image = face_recognition.load_image_file(img_local_path)
+                    image_hash = generate_md5(img_local_path)
+                    os.remove(img_local_path)
                 except Exception as e:
                     errorImages.append(imageUrl)
                 
@@ -93,8 +95,7 @@ class GetFaces(Resource):
                 # -------- Photo ---------
                 # url of image  generate hash and then delete image from local storage
                 image_path = imageUrl
-                image_hash = generate_md5(img_local_path)
-                os.remove(img_local_path)
+                
 
                 # # # # ruby_id - ruby_image_id, image_hash, image_url, captions, group_id
                 imagesInDB = []
@@ -128,8 +129,11 @@ class GetFaces(Resource):
                     # Make a face object and save to database with unknown name
                     top, right, bottom, left = faceLocations[i]
                     personFace = image[top:bottom, left:right]
-                    
-                    faceObj = Model.Face(faceId, photoObj.id, faceEncoding, personObj.id, top, bottom, left , right)
+
+
+                    filename = faceId + '.jpg'
+                    img_path = os.path.join(face_location, filename)
+                    faceObj = Model.Face(faceId, photoObj.id, faceEncoding, personObj.id, img_path, top, bottom, left , right)
                     db.session.add(faceObj)
                     db.session.commit()
 

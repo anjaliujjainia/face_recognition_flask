@@ -3,6 +3,8 @@ from flask_restful import Resource, reqparse
 from flask_app import Model
 from flask_app.app import db
 
+
+#  '/api/update_person_details'
 class UpdatePersonDetails(Resource):
     def post(self):
         data = dict(request.get_json(force=True))

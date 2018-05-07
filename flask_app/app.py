@@ -11,7 +11,9 @@ from instance.config import *
 
 DIR = os.path.abspath(os.path.dirname(__file__))
 LOCATION = os.path.join(DIR, 'static/images')
-FACE_LOCATION = os.path.join(DIR, 'static/faces')
+
+FACE_IMAGES_DIR ='/run/user/1000/gvfs/smb-share:server=192.168.108.210,share=shares/face_images/'
+# FACE_LOCATION = os.path.join(DIR, 'static/faces')
 
 # def create_app(config_name):
 app = Flask(__name__)
@@ -19,7 +21,7 @@ app.config.from_object('instance.config.DevelopmentConfig')
 app.config.from_pyfile('../instance/config.py')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['LOCATION'] = LOCATION
-app.config['FACE_LOCATION'] = FACE_LOCATION
+app.config['FACE_LOCATION'] = FACE_IMAGES_DIR
 
 
 db = SQLAlchemy(app)
