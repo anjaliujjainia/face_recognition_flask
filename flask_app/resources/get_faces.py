@@ -66,8 +66,10 @@ class GetFaces(Resource):
                 # ---------------------- SAVING IMAGE -----------------
                 photoId = str(uuid.uuid4())
                 errorImages = []
+                img_local_path = save_face_img(photoId, img, who='photo')
                 try:
-                    image = face_recognition.load_image_file(save_face_img(photoId, img, who='photo'))
+                    image = face_recognition.load_image_file(img_local_path)
+                    os.remove(img_local_path)
                 except Exception as e:
                     errorImages.append(imageUrl)
                 
@@ -123,7 +125,7 @@ class GetFaces(Resource):
                     db.session.commit()
 
                     # if the person is new, set new face as its default
-                    if not True in matchedFacesBool: 
+                    if not True in matchedFacesBool:
                        personObj = db.session.query(Model.Person).filter_by(id=fetch_person_id).first()
                        personObj.default_face = faceObj.id
                        db.session.commit()
