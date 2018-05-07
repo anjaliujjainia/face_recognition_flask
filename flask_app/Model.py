@@ -1,6 +1,7 @@
 from flask_app.app import db
-
+# from flask_app.app import app
 from datetime import datetime
+# from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.dialects.postgresql import ARRAY
 
 
@@ -11,13 +12,13 @@ import numpy as np
 
 
 class Photo(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    ruby_id = db.Column(db.Integer)
-    image_hash = db.Column(db.String(512), unique=True)
-    image_url = db.Column(db.String(512))
-    added_on = db.Column(db.DateTime, default=datetime.now)
-    captions = db.Column(db.String(512))
-    group_id = db.Column(db.String(512))
+    id = db.Column(db.Integer, primary_key=True) ## --- Primary Key ---
+    ruby_id = db.Column(db.Integer) ## --- id of image from input ---
+    image_hash = db.Column(db.String(512), unique=True) ## --- hash of image ---
+    image_url = db.Column(db.String(512)) ## --- url of image we get ---
+    added_on = db.Column(db.DateTime, default=datetime.now) ## --- Delault upload date (database) ---
+    captions = db.Column(db.String(512)) ## --- caption of image from input ---
+    group_id = db.Column(db.String(512)) ## --- group/school id of image from input ---
 
 
     def __init__(self, image_url, ruby_id, image_hash, captions, group_id):
@@ -30,46 +31,13 @@ class Photo(db.Model):
     def __repr__(self):
         return '<Photo %r>' % self.id
 
-class Face(db.Model):
-    id = db.Column(db.String(64), primary_key=True)
-    # face_id = db.Column(db.String(64))
-    photo = db.Column(db.ForeignKey('photo.id'))
-    # face_embedding = db.Column(ARRAY(db.Float))
-    encoding = db.Column(ARRAY(db.Float))
-    person = db.Column(db.Integer, db.ForeignKey('person.id'))
-    person_is_labeled = db.Column(db.Boolean)
-    image_path = db.Column(db.String(64))
-
-    location_top = db.Column(db.Integer)
-    location_bottom = db.Column(db.Integer)
-    location_left = db.Column(db.Integer)
-    location_right = db.Column(db.Integer)
-
-    def __init__(self, f_uuid, photo_id, encoding, person, location_top, location_bottom, location_left, location_right, person_is_labeled = False):
-        self.id = f_uuid
-        self.photo = photo_id
-        self.encoding = encoding
-        self.person = person
-        self.image_path = str(f_uuid) + '.jpg'
-
-        self.location_top = location_top
-        self.location_bottom = location_bottom
-        self.location_left = location_left
-        self.location_right = location_right
-        self.person_is_labeled = person_is_labeled
-
-    
-    def __repr__(self):
-        return '<Face %r>' % self.id
-
-# was cluster
 class Person(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(128))
-    mean_encoding = db.Column(ARRAY(db.Float))
-    group_id = db.Column(db.Integer)
-    kid_id = db.Column(db.Integer)
-    is_labeled = db.Column(db.Boolean)
+    name = db.Column(db.String(128)) ## --- Name of Person ---
+    mean_encoding = db.Column(ARRAY(db.Float)) ## --- Mean Encoding of face ---
+    group_id = db.Column(db.Integer) ## --- From which group/school ---
+    kid_id = db.Column(db.Integer) ## ---  ---
+    is_labeled = db.Column(db.Boolean) ## --- is person labeled (0-NO, 1-YES)---
 
     def __init__(self, mean_encoding, name, group_id=None, kid_id = None, is_labeled=False):
         self.name = name
@@ -91,10 +59,45 @@ class Person(db.Model):
         mean_encoding = np.array(encodings).mean(axis=0)
         self.mean_encoding = list(mean_encoding)
 
+class Face(db.Model):
+    id = db.Column(db.String(64), primary_key=True)
+    # face_id = db.Column(db.String(64))
+    photo = db.Column(db.ForeignKey('photo.id')) ## --- photo from where this face is taken from (Photo.id) ---
+    # face_embedding = db.Column(ARRAY(db.Float))
+    encoding = db.Column(ARRAY(db.Float)) ## --- Features of image ---
+    person = db.Column(db.Integer, db.ForeignKey('person.id')) ## --- Who's face is this (Person.id) ---
+    person_is_labeled = db.Column(db.Boolean) ## --- is face/person known (0 - NO, 1 - YES) ---
+    image_path = db.Column(db.String(64)) ## --- Path of face on our server ---
+
+    location_top = db.Column(db.Integer) ## --- Location of face in photo ---
+    location_bottom = db.Column(db.Integer) ## --- Location of face in photo ---
+    location_left = db.Column(db.Integer) ## --- Location of face in photo ---
+    location_right = db.Column(db.Integer) ## --- Location of face in photo ---
+
+    def __init__(self, f_uuid, photo_id, encoding, person, location_top, location_bottom, location_left, location_right, person_is_labeled = False):
+        self.id = f_uuid
+        self.photo = photo_id
+        self.encoding = encoding
+        self.person = person
+        self.image_path = str(f_uuid) + '.jpg'
+
+        self.location_top = location_top
+        self.location_bottom = location_bottom
+        self.location_left = location_left
+        self.location_right = location_right
+        self.person_is_labeled = person_is_labeled
+
+    
+    def __repr__(self):
+        return '<Face %r>' % self.id
+
+# was cluster
+
+
 # to do many to many field
 class AlbumUser(db.Model):
-    album_id = db.Column(db.Integer, primary_key=True)
-    title = db.Column(db.String(128))
+    album_id = db.Column(db.Integer, primary_key=True) 
+    title = db.Column(db.String(128)) ## --- Title of Album ---
     timestamp = db.Column(db.DateTime, unique=True)
     created_on = db.Column(db.DateTime, default=datetime.utcnow)
     # photos = db.relationship('Photo', ) # many to many
