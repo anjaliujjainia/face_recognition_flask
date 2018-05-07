@@ -12,6 +12,7 @@ import numpy as np
 from PIL import Image
 from random import randrange
 from skimage import io
+import hashlib
 import face_recognition
 from urllib.request import urlopen
 from werkzeug.utils import secure_filename
@@ -19,6 +20,7 @@ from werkzeug.utils import secure_filename
 photo_location = app.config['LOCATION']
 face_location = app.config['FACE_LOCATION']
 
+# ----------- Generate Image from URL ---------------------
 def getImageFromURL(url):
     req = urlopen(url)
     arr = np.asarray(bytearray(req.read()), dtype="uint8")
@@ -26,6 +28,7 @@ def getImageFromURL(url):
     # cv2.imshow("1.jpg",img)
     return img
 
+# ----------- save image to local storage ---------------------
 def save_face_img(id, img, who='face'):
     filename = id  + ".jpeg"
     if who == "photo":
@@ -40,63 +43,71 @@ def save_face_img(id, img, who='face'):
     if cv2.imwrite(img_path, img):
         return img_path
 
+# ----------- Generate hash of Photo ---------------------
+def generate_md5(image_path):
+    hash_md5 = hashlib.md5()
+    with open(image_path, "rb") as f:
+        for chunk in iter(lambda: f.read(4096), b""):
+            hash_md5.update(chunk)
+    return hash_md5.hexdigest()
+
 # Returns all the faces
 class GetFaces(Resource):
     def post(self):
         # Making request for image
-        # parse = reqparse.RequestParser()
-        # parse.add_argument('image', type=werkzeug.FileStorage, location='files')
-        # # parse.add_argument('image', type = str) # for url image
-        # parse.add_argument('caption', type = str)
-        # args = parse.parse_args()
-        # pdb.set_trace()
         data = dict(request.get_json(force=True))
-        if len(data) > 0:#args['image']:
+        if len(data) > 0:
             
             faceNames = []
 
             for image in data.items():
             # INDENTATION START
-                ruby_image_id = image[0]#randrange(0, 100)#
+                ruby_image_id = image[0]                        #randrange(0, 100)#
                 imageUrl = image[1]["url"]
-                group_id = image[1]["group_id"]#randrange(0, 100)
-                caption = "RANDOM"#args['caption']
-                # img = args['image']
+                group_id = image[1]["group_id"]                         #randrange(0, 100)
+                caption = "RANDOM"                              #args['caption']
+
                 img = getImageFromURL(imageUrl) # for url image
                 # ---------------------- SAVING IMAGE -----------------
                 photoId = str(uuid.uuid4())
+                img_local_path = save_face_img(photoId, img, who='photo')
+                # Hold url of images which were not readable
                 errorImages = []
                 try:
-                    image = face_recognition.load_image_file(save_face_img(photoId, img, who='photo'))
+                    image = face_recognition.load_image_file(img_local_path)
                 except Exception as e:
                     errorImages.append(imageUrl)
                 
-                
+                # Getting All rows from person table and making lists of face ids and encodings
                 person_query = db.session.query(Model.Person).all()
                 knownFaceEncodings = [_.mean_encoding for _ in person_query]
                 knownFaceIds = [_.id for _ in person_query]
                 
+                # Locations of faces in photo
                 faceLocations = face_recognition.face_locations(image)
+                # Encodings of faces in photo
                 faceEncodings = face_recognition.face_encodings(image, faceLocations)
                 
                 
 
                 # -------- Photo ---------
-                
-                # URL of the image from the server
-                # img_hash = getMd5Sum(img) # for url image
-                # image_hash = str(uuid.uuid4())
+                # url of image  generate hash and then delete image from local storage
+                image_path = imageUrl
+                image_hash = generate_md5(img_local_path)
+                os.remove(img_local_path)
 
-                # url of image from arguments(ruby -------TO DO --------------) 
-                image_path = imageUrl#os.path.join(app.config['LOCATION'], photoId+".jpeg")
-                image_hash = str(randrange(1000, 10000000))#generate_md5(image_path)
-                # img_path = img # for url image
                 # # # # ruby_id - ruby_image_id, image_hash, image_url, captions, group_id
-                photoObj = Model.Photo(image_path, ruby_image_id, image_hash, caption, group_id)
-                db.session.add(photoObj)
-                db.session.commit()
-                # ------- End Photo ------
-                
+                imagesInDB = []
+                photoObj = db.session.query(Model.Photo).filter_by(image_hash=image_hash).first()
+                imagesInDB.append(photoObj.id)
+                if photoObj:
+                    imagesInDB.append(imageUrl)
+                else:
+                    photoObj = Model.Photo(image_path, ruby_image_id, image_hash, caption, group_id)
+                    db.session.add(photoObj)
+                    db.session.commit()
+                    # ------- End Photo ------
+                    
                 for i, faceEncoding in enumerate(faceEncodings):
                     matchedFacesBool = face_recognition.compare_faces(knownFaceEncodings, faceEncoding, tolerance=0.4)
                     faceId = str(uuid.uuid4())
@@ -124,18 +135,17 @@ class GetFaces(Resource):
 
                     # if the person is new, set new face as its default
                     if not True in matchedFacesBool: 
-                       personObj = db.session.query(Model.Person).filter_by(id=fetch_person_id).first()
-                       personObj.default_face = faceObj.id
-                       db.session.commit()
-                       
+                        personObj = db.session.query(Model.Person).filter_by(id=fetch_person_id).first()
+                        personObj.default_face = faceObj.id
+                        db.session.commit()
+                    
                     save_face_img(faceId, personFace, "face")
                 # INDENTATION END
             # CHECK INDENTATION AND DATA
 
             if len(faceNames) == 0:
-                return jsonify({"status": 200, "message": "No Known Faces Found.", "Error Images": errorImages})
+                return jsonify({"status": 200, "message": "No Known Faces Found.", "Error Images": errorImages, "Same Images": imagesInDB})
 
-            return jsonify({"status": 200, "message": "Faces Found.", "known_faces": str(faceNames), "Error Images": errorImages})
+            return jsonify({"status": 200, "message": "Faces Found.", "known_faces": str(faceNames), "Error Images": errorImages, "Same Images": imagesInDB})
         else:
             return jsonify({"status": 406, "message": "Please Provide Data."})
-
