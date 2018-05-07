@@ -57,7 +57,7 @@ class GetFaces(Resource):
 
             for image in data.items():
             # INDENTATION START
-                image_id = image[0]#randrange(0, 100)#
+                ruby_image_id = image[0]#randrange(0, 100)#
                 imageUrl = image[1]["url"]
                 group_id = image[1]["group_id"]#randrange(0, 100)
                 caption = "RANDOM"#args['caption']
@@ -66,10 +66,8 @@ class GetFaces(Resource):
                 # ---------------------- SAVING IMAGE -----------------
                 photoId = str(uuid.uuid4())
                 errorImages = []
-                img_local_path = save_face_img(photoId, img, who='photo')
                 try:
-                    image = face_recognition.load_image_file(img_local_path)
-                    os.remove(img_local_path)
+                    image = face_recognition.load_image_file(save_face_img(photoId, img, who='photo'))
                 except Exception as e:
                     errorImages.append(imageUrl)
                 
@@ -93,8 +91,8 @@ class GetFaces(Resource):
                 image_path = imageUrl#os.path.join(app.config['LOCATION'], photoId+".jpeg")
                 image_hash = str(randrange(1000, 10000000))#generate_md5(image_path)
                 # img_path = img # for url image
-                # # # # ruby_id - image_id, image_hash, image_url, captions, group_id
-                photoObj = Model.Photo(image_path, image_id, image_hash, caption, group_id)
+                # # # # ruby_id - ruby_image_id, image_hash, image_url, captions, group_id
+                photoObj = Model.Photo(image_path, ruby_image_id, image_hash, caption, group_id)
                 db.session.add(photoObj)
                 db.session.commit()
                 # ------- End Photo ------
@@ -125,7 +123,7 @@ class GetFaces(Resource):
                     db.session.commit()
 
                     # if the person is new, set new face as its default
-                    if not True in matchedFacesBool:
+                    if not True in matchedFacesBool: 
                        personObj = db.session.query(Model.Person).filter_by(id=fetch_person_id).first()
                        personObj.default_face = faceObj.id
                        db.session.commit()
