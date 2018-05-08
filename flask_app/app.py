@@ -33,11 +33,15 @@ from flask_app.resources.get_faces import GetFaces
 from flask_app.resources.get_data_by_class import GetPersonFacesForClass
 from flask_app.resources.update_person_details import UpdatePersonDetails
 from flask_app.resources.get_person_face_for_kid import GetPersonFaceForKid
+from flask_app.resources.manual_tag_kid import ManualTagKid
 
-# send a list of photos and it returns all the known or already existing faces with urls
+# [POST] send a list of photos and it returns all the known or already existing faces with urls
 api.add_resource(GetFaces, '/api/get_faces')
-# Give a group/class id to get all the people in the class with all the photos they belong in
+# [GET] Give a group/class id to get all the people in the class with all the photos they belong in
 api.add_resource(GetPersonFacesForClass, '/api/get_data_by_class/<int:group_id>')
-# update person details 
+# [POST] update person details 
 api.add_resource(UpdatePersonDetails, '/api/update_person_details')
+# [GET]
 api.add_resource(GetPersonFaceForKid, '/api/get_person_face_for_kid/<int:kid_id>')
+# [POST]
+api.add_resource(ManualTagKid, '/api/manual_tag_kid')

@@ -15,7 +15,7 @@ class Photo(db.Model):
     id = db.Column(db.Integer, primary_key=True) ## --- Primary Key ---
     ruby_id = db.Column(db.Integer) ## --- id of image from input ---
     image_hash = db.Column(db.String(512), unique=True) ## --- hash of image ---
-    image_url = db.Column(db.String(512)) ## --- url of image we get ---
+    image_url = db.Column(db.String(1024)) ## --- url of image we get ---
     added_on = db.Column(db.DateTime, default=datetime.now) ## --- Delault upload date (database) ---
     captions = db.Column(db.String(512)) ## --- caption of image from input ---
     group_id = db.Column(db.String(512)) ## --- group/school id of image from input ---
@@ -36,7 +36,7 @@ class Person(db.Model):
     name = db.Column(db.String(128)) ## --- Name of Person ---
     mean_encoding = db.Column(ARRAY(db.Float)) ## --- Mean Encoding of face ---
     group_id = db.Column(db.Integer) ## --- From which group/school ---
-    kid_id = db.Column(db.Integer) ## ---  ---
+    kid_id = db.Column(db.Integer, unique=True) ## --- Id of student in school ---
     is_labeled = db.Column(db.Boolean) ## --- is person labeled (0-NO, 1-YES)---
     default_face = db.Column(db.ForeignKey('face.id')) ## --- is person labeled (0-NO, 1-YES)---
 
@@ -68,7 +68,7 @@ class Face(db.Model):
     encoding = db.Column(ARRAY(db.Float)) ## --- Features of image ---
     person = db.Column(db.Integer, db.ForeignKey('person.id')) ## --- Who's face is this (Person.id) ---
     person_is_labeled = db.Column(db.Boolean) ## --- is face/person known (0 - NO, 1 - YES) ---
-    image_path = db.Column(db.String(64)) ## --- Path of face on our server ---
+    image_path = db.Column(db.String(1024)) ## --- Path of face on our server ---
 
     location_top = db.Column(db.Integer) ## --- Location of face in photo ---
     location_bottom = db.Column(db.Integer) ## --- Location of face in photo ---

@@ -89,8 +89,6 @@ class GetFaces(Resource):
                 faceLocations = face_recognition.face_locations(image)
                 # Encodings of faces in photo
                 faceEncodings = face_recognition.face_encodings(image, faceLocations)
-                
-                
 
                 # -------- Photo ---------
                 # url of image  generate hash and then delete image from local storage
@@ -100,7 +98,6 @@ class GetFaces(Resource):
                 # # # # ruby_id - ruby_image_id, image_hash, image_url, captions, group_id
                 imagesInDB = []
                 photoObj = db.session.query(Model.Photo).filter_by(image_hash=image_hash).first()
-                imagesInDB.append(photoObj.id)
                 if photoObj:
                     imagesInDB.append(imageUrl)
                 else:
@@ -133,6 +130,7 @@ class GetFaces(Resource):
 
                     filename = faceId + '.jpg'
                     img_path = os.path.join(face_location, filename)
+                    # pdb.set_trace()
                     faceObj = Model.Face(faceId, photoObj.id, faceEncoding, personObj.id, img_path, top, bottom, left , right)
                     db.session.add(faceObj)
                     db.session.commit()
