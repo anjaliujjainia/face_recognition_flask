@@ -6,16 +6,17 @@ from flask_app.app import db, app
 
 
 # Untag Person Manually (Arguments:- person_id, photo_id as post request)
-class UntagPerson(Resource):
+class ManualUntagKid(Resource):
     def post(self):
-        parse = reqparse.RequestParser()
-        parse.add_argument('photo_id', type = str) # argument for photo id
-        parse.add_argument('person_id', type = str) # argument for person id
-        args = parse.parse_args()
-
-        if args['photo_id'] != "" and args['person_id'] != "":
-            photo_id = int(args['photo_id'])
-            person_id = int(args['person_id'])
+        # parse = reqparse.RequestParser()
+        # parse.add_argument('photo_id', type = str) # argument for photo id
+        # parse.add_argument('person_id', type = str) # argument for person id
+        # args = parse.parse_args()
+        data = dict(request.get_json(force=True))
+        if len(data) > 1:
+        # if data['photo_id'] != "" and data['person_id'] != "":
+            photo_id = int(data['photo_id'])
+            person_id = int(data['person_id'])
             faces = db.session.query(Model.Face).filter_by(photo=photo_id).all() # Getting all faces with given photo id
             for face in faces:
                 if face.person == person_id:

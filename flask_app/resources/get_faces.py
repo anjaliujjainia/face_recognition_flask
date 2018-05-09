@@ -51,9 +51,11 @@ def generate_md5(image_path):
             hash_md5.update(chunk)
     return hash_md5.hexdigest()
 
+# import pdb
 # Returns all the faces
 class GetFaces(Resource):
     def post(self):
+        # pdb.set_trace()
         # Making request for image
         data = dict(request.get_json(force=True))
         if len(data) > 0:
@@ -66,7 +68,7 @@ class GetFaces(Resource):
                 imageUrl = image[1]["url"]
                 group_id = image[1]["group_id"]                         #randrange(0, 100)
                 caption = "RANDOM"                              #args['caption']
-
+                
                 img = getImageFromURL(imageUrl) # for url image
                 # ---------------------- SAVING IMAGE -----------------
                 photoId = str(uuid.uuid4())
