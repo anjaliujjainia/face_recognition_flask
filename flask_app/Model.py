@@ -67,7 +67,7 @@ class Face(db.Model):
     # face_embedding = db.Column(ARRAY(db.Float))
     encoding = db.Column(ARRAY(db.Float)) ## --- Features of image ---
     person = db.Column(db.Integer, db.ForeignKey('person.id')) ## --- Who's face is this (Person.id) ---
-    person_is_labeled = db.Column(db.Boolean) ## --- is face/person known (0 - NO, 1 - YES) ---
+    face_is_labeled = db.Column(db.Boolean) ## --- If face is just a relation(from tag kid)
     image_path = db.Column(db.String(1024)) ## --- Path of face on our server ---
 
     location_top = db.Column(db.Integer) ## --- Location of face in photo ---
@@ -75,7 +75,7 @@ class Face(db.Model):
     location_left = db.Column(db.Integer) ## --- Location of face in photo ---
     location_right = db.Column(db.Integer) ## --- Location of face in photo ---
 
-    def __init__(self, f_uuid, photo_id, encoding, person, image_path, location_top, location_bottom, location_left, location_right, person_is_labeled = False):
+    def __init__(self, f_uuid, photo_id, encoding, person, image_path, location_top, location_bottom, location_left, location_right, face_is_labeled = False):
         self.id = f_uuid
         self.photo = photo_id
         self.encoding = encoding
@@ -86,7 +86,7 @@ class Face(db.Model):
         self.location_bottom = location_bottom
         self.location_left = location_left
         self.location_right = location_right
-        self.person_is_labeled = person_is_labeled
+        self.face_is_labeled = face_is_labeled
 
     
     def __repr__(self):
