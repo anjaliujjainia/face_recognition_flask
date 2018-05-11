@@ -130,7 +130,7 @@ class GetFaces(Resource):
                         for i, faceEncoding in enumerate(faceEncodings):
                             matchedFacesBool = face_recognition.compare_faces(knownFaceEncodings, faceEncoding, tolerance=0.4)
                             faceId = str(uuid.uuid4())
-                            # If a match was found in known_face_encodings, just use the first one.
+                            # Known Face
                             if True in matchedFacesBool:
                                 firstMatchIndex = matchedFacesBool.index(True)
                                 matched_id = knownFaceIds[firstMatchIndex]
@@ -138,6 +138,7 @@ class GetFaces(Resource):
                                 personObj.update_average_face_encoding(faceEncoding)
                                 faceNames.append(personObj.name)
                             else:
+                                # Unknown Face
                                 name = "unknown"
                                 personObj = Model.Person(faceEncoding, name, group_id=group_id)
                                 db.session.add(personObj)
@@ -173,3 +174,13 @@ class GetFaces(Resource):
             return jsonify({"status": 200, "message": "Faces Found.", "known_faces": str(faceNames), "Error Images": errorImages, "Saved Images": imagesInDB})
         else:
             return jsonify({"status": 406, "message": "Please Provide Data."})
+
+'''
+{known_faces_match:{ 
+        person_id: [images_id_array]
+        }, 
+    unknown_faces:{
+        person_id: [images_id_array]
+        }
+}
+'''
