@@ -55,54 +55,43 @@ def generate_md5(image_path):
             hash_md5.update(chunk)
     return hash_md5.hexdigest()
 
-# import pdb
 # Returns all the faces
 class GetFaces(Resource):
     def post(self):
-        # pdb.set_trace()
         # Making request for image
         data = dict(request.get_json(force=True))
         if len(data) > 0:
             
-            faceNames = []
-            errorImages = []
+            new_prsn_ids = {}
+            errorImages = {}
             imagesInDB = []
             for image in data.items():
-            # INDENTATION START
+                # getting post data
                 ruby_image_id = image[0]                        #randrange(0, 100)#
                 imageUrl = image[1]["url"]
                 group_id = image[1]["group_id"]                         #randrange(0, 100)
-                caption = "RANDOM"                              #args['caption']
+
                 try:
                     img = getImageFromURL(imageUrl) # for url image
                 except urllib.error.URLError as err:
                     print(err.reason)
-                    pdb.set_trace()
                     print('File Not Found at URL')
-                    errorImages.append(ruby_image_id)
+                    errorImages[ruby_image_id] = err.reason
                 else:
                     print('YAY! File Found and we are decoding it now') 
                     # ---------------------- SAVING IMAGE -----------------
                     photoId = str(uuid.uuid4())
                     img_local_path = save_face_img(photoId, img, who='photo')
                     # Hold url of images which were not readable
-                    # errorImages = []
                     try:
-                        pdb.set_trace()
                         image = face_recognition.load_image_file(img_local_path)
                         image_hash = generate_md5(img_local_path)
                         os.remove(img_local_path)
-                    # except urllib.error.HTTPError as err:
                     except FileNotFoundError as err:
-                        pdb.set_trace()
                         print(err)
-                        print("Could not load the image from saved Images")
-                        errorImages.append(ruby_image_id)
+                        errorImages[ruby_image_id] = err
                         continue
                     else:
-                        # Getting All rows from person table and making lists of face ids and encodings
-                        print("Going in else")
-                        pdb.set_trace()
                         person_query = db.session.query(Model.Person).all()
                         knownFaceEncodings = [_.mean_encoding for _ in person_query]
                         knownFaceIds = [_.id for _ in person_query]
@@ -122,7 +111,7 @@ class GetFaces(Resource):
                         if photoObj:
                             imagesInDB.append(imageUrl)
                         else:
-                            photoObj = Model.Photo(image_path, ruby_image_id, image_hash, caption, group_id)
+                            photoObj = Model.Photo(image_path, ruby_image_id, image_hash, group_id)
                             db.session.add(photoObj)
                             db.session.commit()
                             # ------- End Photo ------
@@ -132,11 +121,17 @@ class GetFaces(Resource):
                             faceId = str(uuid.uuid4())
                             # Known Face
                             if True in matchedFacesBool:
-                                firstMatchIndex = matchedFacesBool.index(True)
-                                matched_id = knownFaceIds[firstMatchIndex]
-                                personObj = db.session.query(Model.Person).filter_by(id=matched_id).first()
+                                matchedId = knownFaceIds[matchedFacesBool.index(True)]
+                                
+                                personObj = db.session.query(Model.Person).filter_by(id=matchedId).first()
                                 personObj.update_average_face_encoding(faceEncoding)
-                                faceNames.append(personObj.name)
+                                db.session.commit()
+
+                                fetch_person_id = personObj.id
+                                if fetch_person_id in new_prsn_ids.keys():
+                                    new_prsn_ids[fetch_person_id].append(ruby_image_id)
+                                else:
+                                    new_prsn_ids[fetch_person_id]=[ruby_image_id]
                             else:
                                 # Unknown Face
                                 name = "unknown"
@@ -144,16 +139,16 @@ class GetFaces(Resource):
                                 db.session.add(personObj)
                                 db.session.commit()
                                 fetch_person_id = personObj.id
+                                new_prsn_ids[fetch_person_id] = [ruby_image_id]
                             
                             # Make a face object and save to database with unknown name
                             top, right, bottom, left = faceLocations[i]
                             personFace = image[top:bottom, left:right]
 
 
-                            filename = faceId + '.jpg'
-                            img_path = os.path.join(face_location, filename)
-                            # pdb.set_trace()
-                            faceObj = Model.Face(faceId, photoObj.id, faceEncoding, personObj.id, img_path, top, bottom, left , right)
+                            faceFile = faceId + '.jpg'
+                            faceImgPath = os.path.join(face_location, faceFile)
+                            faceObj = Model.Face(faceId, photoObj.id, faceEncoding, fetch_person_id, faceImgPath, top, bottom, left , right)
                             db.session.add(faceObj)
                             db.session.commit()
 
@@ -164,14 +159,7 @@ class GetFaces(Resource):
                                 db.session.commit()
                             
                             save_face_img(faceId, personFace, "face")
-                    # INDENTATION END
-                # CHECK INDENTATION AND DATA
-
-            if len(faceNames) == 0:
-                pdb.set_trace()
-                return jsonify({"status": 200, "message": "No Known Faces Found.", "Error Images": errorImages, "Saved Images": imagesInDB})
-
-            return jsonify({"status": 200, "message": "Faces Found.", "known_faces": str(faceNames), "Error Images": errorImages, "Saved Images": imagesInDB})
+            return jsonify({"status": 200, "message": "People Found!", "error_images": errorImages, "same_images": imagesInDB, "people_found": new_prsn_ids})
         else:
             return jsonify({"status": 406, "message": "Please Provide Data."})
 

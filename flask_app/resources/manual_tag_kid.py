@@ -10,7 +10,7 @@ class ManualTagKid(Resource):
     def post(self):
         data = dict(request.get_json(force=True))
         if len(data) > 0:
-            ruby_id = data["photo_id"]
+            ruby_id = data["ruby_photo_id"]
             kid_id = data["kid_id"]
             # pdb.set_trace()
             # given ruby id and kid id, get the image and person
