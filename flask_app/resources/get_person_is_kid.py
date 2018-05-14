@@ -93,11 +93,13 @@ class GetPersonIsKid(Resource):
             top_k = results.argsort()[-5:][::-1]
             labels = load_labels(label_file)
             # Return
-            result = {}
+            kid = False
             for i in top_k:
-                result[labels[i]] = str(results[i])
+                if labels[i] == 'kid' and results[i] >= 0.5:
+                    kid = True
+                    # print(labels[i], True)
 
-            return jsonify({"status": 200,"message": result})
+            return jsonify({"status": 200,"kid": kid})
         else:
             return jsonify({"status": 406,"message": "please provide image"})
 
