@@ -22,8 +22,6 @@ app.config.from_object('instance.config.DevelopmentConfig')
 app.config.from_pyfile('../instance/config.py')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['LOCATION'] = LOCATION
-
-app.config['FACE_LOCATION'] = FACE_IMAGES_DIR
 app.config['MODEL_FOLDER'] = MODEL_FOLDER
 
 db = SQLAlchemy(app)
