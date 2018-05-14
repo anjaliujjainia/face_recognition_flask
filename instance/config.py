@@ -4,8 +4,10 @@ class Config(object):
     """Parent configuration class."""
     DEBUG = False
     CSRF_ENABLED = True
-    # SECRET = os.getenv('SECRET')
     SQLALCHEMY_DATABASE_URI = 'postgresql://postgres:test@localhost/face_recognition_db'
+    REDIS_URL = 'redis://localhost:6379'
+    FACE_LOCATION = '/run/user/1000/gvfs/smb-share:server=192.168.108.210,share=shares/face_images/'
+    QUEUES = ['default']
 
 class DevelopmentConfig(Config):
     """Configurations for Development."""

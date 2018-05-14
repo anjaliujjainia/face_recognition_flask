@@ -18,6 +18,8 @@ class GetPersonFaceForKid(Resource):
             photoObj = db.session.query(Model.Photo).filter_by(id = face.photo).first()
             mapped_person_images_ids.append(photoObj.ruby_id)
 
-        return jsonify({kid_id: {"mapped_person_id": mapped_person_id, "mapped_person_face": mapped_person_face, 
-                        "mapped_person_images_ids": mapped_person_images_ids}})
+        response = {kid_id: {"mapped_person_id": mapped_person_id, 
+                            "mapped_person_face": mapped_person_face, 
+                            "mapped_person_images_ids": mapped_person_images_ids}}
+        return jsonify({"status": 200, "message": response})
 

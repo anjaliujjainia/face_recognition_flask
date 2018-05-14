@@ -12,7 +12,7 @@ from instance.config import *
 DIR = os.path.abspath(os.path.dirname(__file__))
 LOCATION = os.path.join(DIR, 'static/images')
 
-FACE_IMAGES_DIR ='/run/user/1000/gvfs/smb-share:server=192.168.108.210,share=shares/face_images/'
+# FACE_IMAGES_DIR ='/run/user/1000/gvfs/smb-share:server=192.168.108.210,share=shares/face_images/'
 # FACE_LOCATION = os.path.join(DIR, 'static/faces')
 
 # def create_app(config_name):
@@ -21,7 +21,7 @@ app.config.from_object('instance.config.DevelopmentConfig')
 app.config.from_pyfile('../instance/config.py')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['LOCATION'] = LOCATION
-app.config['FACE_LOCATION'] = FACE_IMAGES_DIR
+
 
 
 db = SQLAlchemy(app)
@@ -35,6 +35,7 @@ from flask_app.resources.update_person_details import UpdatePersonDetails
 from flask_app.resources.get_person_face_for_kid import GetPersonFaceForKid
 from flask_app.resources.manual_tag_kid import ManualTagKid
 from flask_app.resources.manual_untag_kid import ManualUntagKid
+from flask_app.resources.photo_detail_response import PhotoDetailResponse
 
 # [POST] send a list of photos and it returns all the known or already existing faces with urls
 api.add_resource(GetFaces, '/api/get_faces')
@@ -48,3 +49,5 @@ api.add_resource(GetPersonFaceForKid, '/api/get_person_face_for_kid/<int:kid_id>
 api.add_resource(ManualTagKid, '/api/manual_tag_kid')
 # [POST] Manual Untag Person
 api.add_resource(ManualUntagKid, '/api/manual_untag_kid')
+# [POST] request tp get the data of the worker
+api.add_resource(PhotoDetailResponse, '/api/photo_detail_response')

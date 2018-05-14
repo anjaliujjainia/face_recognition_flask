@@ -1,174 +1,46 @@
-from flask import request, jsonify
-from flask_restful import Resource, reqparse
-# from flask_app.Model import Face, Person, Photo
-from flask_app import Model
-from flask_app.app import db, app
-
-import os
-import cv2
-import uuid
-import werkzeug
-import numpy as np
-from PIL import Image
-from random import randrange
-from skimage import io
-import hashlib
-import face_recognition
-from urllib.request import urlopen
-import urllib#.request import urlopen
-from werkzeug.utils import secure_filename
+import requests
 import pdb
+from rq import Queue
+# from worker import conn
+from .. import task_save_faces
+from rq import push_connection, pop_connection, Queue
+from flask import Blueprint, render_template, request, jsonify, current_app, g, url_for
+import redis
+from flask_restful import Resource
 
-photo_location = app.config['LOCATION']
-face_location = app.config['FACE_LOCATION']
+# bp = Blueprint('main', __name__)
 
-# ----------- Generate Image from URL ---------------------
-def getImageFromURL(url):
-    req = urlopen(url)
-    arr = np.asarray(bytearray(req.read()), dtype="uint8")
-    img = cv2.imdecode(arr, 1)
-    # cv2.imshow("1.jpg",img)
-    return img
+def get_redis_connection():
+    redis_connection = getattr(g, '_redis_connection', None)
+    if redis_connection is None:
+        redis_url = current_app.config['REDIS_URL']
+        redis_connection = g._redis_connection = redis.from_url(redis_url)
+    return redis_connection
 
-# ----------- save image to local storage ---------------------
-def save_face_img(id, img, who='face'):
-    filename = id  + ".jpeg"
-    if who == "photo":
-        img_path = os.path.join(app.config['LOCATION'], filename)
-    else:
-        img_path = os.path.join(app.config['FACE_LOCATION'], filename)
-
-        # changing the color format of Image from BGR to RGB 
-        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-    try:
-        # saving the thumbnail of the face at img_path
-        if cv2.imwrite(img_path, img):
-            return img_path
-    except:
-        print("Could not save " + who)
-
-# ----------- Generate hash of Photo ---------------------
-def generate_md5(image_path):
-    hash_md5 = hashlib.md5()
-    with open(image_path, "rb") as f:
-        for chunk in iter(lambda: f.read(4096), b""):
-            hash_md5.update(chunk)
-    return hash_md5.hexdigest()
-
-# Returns all the faces
 class GetFaces(Resource):
     def post(self):
-        # Making request for image
-        data = dict(request.get_json(force=True))
-        if len(data) > 0:
-            
-            new_prsn_ids = {}
-            errorImages = {}
-            imagesInDB = []
-            for image in data.items():
-                # getting post data
-                ruby_image_id = image[0]                        #randrange(0, 100)#
-                imageUrl = image[1]["url"]
-                group_id = image[1]["group_id"]                         #randrange(0, 100)
-
-                try:
-                    img = getImageFromURL(imageUrl) # for url image
-                except urllib.error.URLError as err:
-                    print(err.reason)
-                    print('File Not Found at URL')
-                    errorImages[ruby_image_id] = err.reason
-                else:
-                    print('YAY! File Found and we are decoding it now') 
-                    # ---------------------- SAVING IMAGE -----------------
-                    photoId = str(uuid.uuid4())
-                    img_local_path = save_face_img(photoId, img, who='photo')
-                    # Hold url of images which were not readable
-                    try:
-                        image = face_recognition.load_image_file(img_local_path)
-                        image_hash = generate_md5(img_local_path)
-                        os.remove(img_local_path)
-                    except FileNotFoundError as err:
-                        print(err)
-                        errorImages[ruby_image_id] = err
-                        continue
-                    else:
-                        person_query = db.session.query(Model.Person).all()
-                        knownFaceEncodings = [_.mean_encoding for _ in person_query]
-                        knownFaceIds = [_.id for _ in person_query]
-                        
-                        # Locations of faces in photo
-                        faceLocations = face_recognition.face_locations(image)
-                        # Encodings of faces in photo
-                        faceEncodings = face_recognition.face_encodings(image, faceLocations)
-
-                        # -------- Photo ---------
-                        # url of image  generate hash and then delete image from local storage
-                        image_path = imageUrl
-                        
-
-                        # ruby_image_id, image_hash, image_url, captions, group_id
-                        photoObj = db.session.query(Model.Photo).filter_by(image_hash=image_hash).first()
-                        if photoObj:
-                            imagesInDB.append(imageUrl)
-                        else:
-                            photoObj = Model.Photo(image_path, ruby_image_id, image_hash, group_id)
-                            db.session.add(photoObj)
-                            db.session.commit()
-                            # ------- End Photo ------
-                            
-                        for i, faceEncoding in enumerate(faceEncodings):
-                            matchedFacesBool = face_recognition.compare_faces(knownFaceEncodings, faceEncoding, tolerance=0.4)
-                            faceId = str(uuid.uuid4())
-                            # Known Face
-                            if True in matchedFacesBool:
-                                matchedId = knownFaceIds[matchedFacesBool.index(True)]
-                                
-                                personObj = db.session.query(Model.Person).filter_by(id=matchedId).first()
-                                personObj.update_average_face_encoding(faceEncoding)
-                                db.session.commit()
-
-                                fetch_person_id = personObj.id
-                                if fetch_person_id in new_prsn_ids.keys():
-                                    new_prsn_ids[fetch_person_id].append(ruby_image_id)
-                                else:
-                                    new_prsn_ids[fetch_person_id]=[ruby_image_id]
-                            else:
-                                # Unknown Face
-                                name = "unknown"
-                                personObj = Model.Person(faceEncoding, name, group_id=group_id)
-                                db.session.add(personObj)
-                                db.session.commit()
-                                fetch_person_id = personObj.id
-                                new_prsn_ids[fetch_person_id] = [ruby_image_id]
-                            
-                            # Make a face object and save to database with unknown name
-                            top, right, bottom, left = faceLocations[i]
-                            personFace = image[top:bottom, left:right]
-
-
-                            faceFile = faceId + '.jpg'
-                            faceImgPath = os.path.join(face_location, faceFile)
-                            faceObj = Model.Face(faceId, photoObj.id, faceEncoding, fetch_person_id, faceImgPath, top, bottom, left , right)
-                            db.session.add(faceObj)
-                            db.session.commit()
-
-                            # if the person is new, set new face as its default
-                            if not True in matchedFacesBool: 
-                                personObj = db.session.query(Model.Person).filter_by(id=fetch_person_id).first()
-                                personObj.default_face = faceObj.id
-                                db.session.commit()
-                            
-                            save_face_img(faceId, personFace, "face")
-            return jsonify({"status": 200, "message": "People Found!", "error_images": errorImages, "same_images": imagesInDB, "people_found": new_prsn_ids})
+        # task = request.form.get('task')
+        task = dict(request.get_json(force=True))
+        conn = get_redis_connection()
+        q = Queue(connection=conn)
+        if len(task) > 0:
+            print("===========Enqueuing task!===========")
+            job = q.enqueue(task_save_faces.run, task)
+            return jsonify({"status": 202, "message": "Accepted"})#, {'Location': url_for('job_status', job_id=job.get_id())}
         else:
-            return jsonify({"status": 406, "message": "Please Provide Data."})
-
-'''
-{known_faces_match:{ 
-        person_id: [images_id_array]
-        }, 
-    unknown_faces:{
-        person_id: [images_id_array]
-        }
-}
-'''
+            return jsonify({"status": 406, "message": "Please Provide Data!"})
+    
+    # @bp.route('/status/<job_id>')
+    def job_status(job_id):
+        q = Queue(connection = get_redis_connection())
+        job = q.fetch_job(job_id)
+        if job is None:
+            response = {'status': 'unknown'}
+        else:
+            response = {
+                'status': job.get_status(),
+                'result': job.result,
+            }
+            if job.is_failed:
+                response['message'] = job.exc_info.strip().split('\n')[-1]
+        return jsonify(response)
