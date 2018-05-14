@@ -11,6 +11,7 @@ from instance.config import *
 
 DIR = os.path.abspath(os.path.dirname(__file__))
 LOCATION = os.path.join(DIR, 'static/images')
+MODEL_FOLDER = os.path.join(DIR, 'resources/results')
 
 # FACE_IMAGES_DIR ='/run/user/1000/gvfs/smb-share:server=192.168.108.210,share=shares/face_images/'
 # FACE_LOCATION = os.path.join(DIR, 'static/faces')
@@ -21,7 +22,12 @@ app.config.from_object('instance.config.DevelopmentConfig')
 app.config.from_pyfile('../instance/config.py')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['LOCATION'] = LOCATION
+<<<<<<< HEAD
 
+=======
+app.config['FACE_LOCATION'] = FACE_IMAGES_DIR
+app.config['MODEL_FOLDER'] = MODEL_FOLDER
+>>>>>>> 7aca62b16d12d740a082bf00c7ea0f78792cc0f4
 
 
 db = SQLAlchemy(app)
@@ -35,7 +41,11 @@ from flask_app.resources.update_person_details import UpdatePersonDetails
 from flask_app.resources.get_person_face_for_kid import GetPersonFaceForKid
 from flask_app.resources.manual_tag_kid import ManualTagKid
 from flask_app.resources.manual_untag_kid import ManualUntagKid
+<<<<<<< HEAD
 from flask_app.resources.photo_detail_response import PhotoDetailResponse
+=======
+from flask_app.resources.get_person_is_kid import GetPersonIsKid
+>>>>>>> 7aca62b16d12d740a082bf00c7ea0f78792cc0f4
 
 # [POST] send a list of photos and it returns all the known or already existing faces with urls
 api.add_resource(GetFaces, '/api/get_faces')
@@ -49,5 +59,10 @@ api.add_resource(GetPersonFaceForKid, '/api/get_person_face_for_kid/<int:kid_id>
 api.add_resource(ManualTagKid, '/api/manual_tag_kid')
 # [POST] Manual Untag Person
 api.add_resource(ManualUntagKid, '/api/manual_untag_kid')
+<<<<<<< HEAD
 # [POST] request tp get the data of the worker
 api.add_resource(PhotoDetailResponse, '/api/photo_detail_response')
+=======
+# [POST] Check if person in image is Kid or Adult
+api.add_resource(GetPersonIsKid, '/api/get_person_is_kid')
+>>>>>>> 7aca62b16d12d740a082bf00c7ea0f78792cc0f4
