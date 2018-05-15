@@ -27,6 +27,8 @@ import pdb
 
 photo_location = app.config['LOCATION']
 face_location = app.config['FACE_LOCATION']
+kid_face_location = face_location + "/kid_faces"
+adult_face_location = face_location + "/adult_faces"
 # API call at /api/photo_detail_response
 url = 'http://192.168.104.87:3001/api/v11/pictures/send_api_end_result'
 # url = 'http://192.168.108.210:5000/api/photo_detail_response'
@@ -197,7 +199,7 @@ def run(data):
 						imagesInDB.append(imageUrl)
 						existing_faces = db.session.query(Model.Face).filter_by(photo=photoObj.id).all()
 						for face in existing_faces:
-							person_id = str(face.person)
+							person_id = face.person
 							if person_id in new_prsn_ids.keys():
 								new_prsn_ids[person_id].append(ruby_image_id)
 							else:
@@ -226,44 +228,41 @@ def run(data):
 							# Location where face is saved
 							saved_face_path = save_face_img(faceId, personFace, "face")
 							face_is_kid = is_kid(saved_face_path)
-							# Known Face
-							if True in matchedFacesBool:
-								matchedId = knownFaceIds[matchedFacesBool.index(True)]
-								person_id = str(matchedId)
-								personObj = db.session.query(Model.Person).filter_by(id=matchedId).first()
-								personObj.update_average_face_encoding(faceEncoding)
+
+							# only if kid face, create new face and person
+							if face_is_kid:
+								print('=========Kid Found!==========')
+								# Known Face
+								if True in matchedFacesBool:
+									matchedId = knownFaceIds[matchedFacesBool.index(True)]
+									# person_id = matchedId
+									personObj = db.session.query(Model.Person).filter_by(id=matchedId).first()
+									personObj.update_average_face_encoding(faceEncoding)
+									# db.session.commit()
+								else:
+									# Unknown Face, new unknown person
+									name = "unknown"
+									personObj = Model.Person(faceEncoding, name, group_id=group_id, is_kid=True)
+									db.session.add(personObj)
 								db.session.commit()
+								person_id = personObj.id
 
 								if person_id in new_prsn_ids.keys():
 									new_prsn_ids[person_id].append(ruby_image_id)
 								else:
 									new_prsn_ids[person_id]=[ruby_image_id]
-							else:
-								# Unknown Face, create new unknown person
-								name = "unknown"
-								if face_is_kid:
-									print('Person: Kid')
-									newPersonObj = Model.Person(faceEncoding, name, group_id=group_id, is_kid=True)
-								else:
-									print("Person: Adult")
-									newPersonObj = Model.Person(faceEncoding, name, group_id=group_id)
-								db.session.add(newPersonObj)
+								# Save face object to database with unknown name
+								faceFile = faceId + '.jpg'
+								faceImgPath = os.path.join(face_location, faceFile)
+								faceObj = Model.Face(faceId, photoObj.id, faceEncoding, int(person_id), faceImgPath, top, bottom, left , right)
+								db.session.add(faceObj)
 								db.session.commit()
-								person_id = str(newPersonObj.id)
-								new_prsn_ids[person_id] = [ruby_image_id]
 
-							# Save face object to database with unknown name
-							faceFile = faceId + '.jpg'
-							faceImgPath = os.path.join(face_location, faceFile)
-							faceObj = Model.Face(faceId, photoObj.id, faceEncoding, int(person_id), faceImgPath, top, bottom, left , right)
-							db.session.add(faceObj)
-							db.session.commit()
-
-							# if the person is new, set new face as its default
-							if not True in matchedFacesBool: 
-								personObj = db.session.query(Model.Person).filter_by(id=int(person_id)).first()
-								personObj.default_face = faceObj.id
-								db.session.commit()
+								# if the person is new, set new face as its default
+								if not True in matchedFacesBool: 
+									personObj = db.session.query(Model.Person).filter_by(id=int(person_id)).first()
+									personObj.default_face = faceObj.id
+									db.session.commit()
 						
 							
 		
@@ -272,7 +271,6 @@ def run(data):
 							"same_images": imagesInDB, 
 							"people": new_prsn_ids
 						}
-		image_res = jsonify(image_response)
 		print("=========== Sending Result ==================")
 		print("url: " + url)
 		headers = {'Content-type': 'application/json', 'Accept': 'text/plain'}
