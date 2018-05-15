@@ -40,6 +40,8 @@ input_std = 255
 input_layer = "Placeholder"
 output_layer = "final_result"
 # --------------------------------------------
+url = 'http://192.168.104.87:3001/api/v11/pictures/send_api_end_result'
+# url = 'http://192.168.108.210:5000/api/photo_detail_response'
 
 
 # ----------- Generate Image from URL ---------------------
@@ -152,6 +154,10 @@ def is_kid(image):
 
 
 
+##
+#
+# return {"person_id": {photo_id}}
+##
 def run(data):
 	if len(data) > 0:
 		new_prsn_ids = {}
@@ -268,5 +274,6 @@ def run(data):
 		image_res = jsonify(image_response)
 		response = requests.post(url, data=image_res.data)
 		print(response.status_code)
+		print("===========Task Completed==================")
 		return 'Task Completed'
 	
