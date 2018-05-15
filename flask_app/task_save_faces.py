@@ -1,3 +1,7 @@
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+
 from flask import request, jsonify, current_app
 from flask_restful import Resource, reqparse
 # from flask_app.Model import Face, Person, Photo
@@ -9,6 +13,7 @@ import cv2
 import uuid
 import werkzeug
 import numpy as np
+import tensorflow as tf
 from PIL import Image
 from random import randrange
 from skimage import io
@@ -25,6 +30,16 @@ face_location = app.config['FACE_LOCATION']
 # API call at /api/photo_detail_response
 # url = 'http://192.168.104.87:3001/api/v11/pictures/send_api_end_result'
 url = 'http://192.168.108.210:5000/api/photo_detail_response'
+# ------ Parameters for Prediction Model ----
+model_file = os.path.join(app.config['MODEL_FOLDER'], "output_graph.pb")
+label_file = os.path.join(app.config['MODEL_FOLDER'],"output_labels.txt")
+input_height = 299
+input_width = 299
+input_mean = 0
+input_std = 255
+input_layer = "Placeholder"
+output_layer = "final_result"
+# --------------------------------------------
 
 
 # ----------- Generate Image from URL ---------------------
@@ -59,6 +74,82 @@ def generate_md5(image_path):
 		for chunk in iter(lambda: f.read(4096), b""):
 			hash_md5.update(chunk)
 	return hash_md5.hexdigest()
+
+def load_graph(model_file):
+    graph = tf.Graph()
+    graph_def = tf.GraphDef()
+
+    with open(model_file, "rb") as f:
+        graph_def.ParseFromString(f.read())
+    with graph.as_default():
+        tf.import_graph_def(graph_def)
+
+    return graph
+
+
+def read_tensor_from_image_file(file_name, input_height=299, input_width=299, input_mean=0, input_std=255):
+    input_name = "file_reader"
+    output_name = "normalized"
+    file_reader = tf.read_file(file_name, input_name)
+    if file_name.endswith(".png"):
+        image_reader = tf.image.decode_png(
+            file_reader, channels=3, name="png_reader")
+    elif file_name.endswith(".gif"):
+        image_reader = tf.squeeze(
+            tf.image.decode_gif(file_reader, name="gif_reader"))
+    elif file_name.endswith(".bmp"):
+        image_reader = tf.image.decode_bmp(file_reader, name="bmp_reader")
+    else:
+        image_reader = tf.image.decode_jpeg(
+            file_reader, channels=3, name="jpeg_reader")
+    float_caster = tf.cast(image_reader, tf.float32)
+    dims_expander = tf.expand_dims(float_caster, 0)
+    resized = tf.image.resize_bilinear(dims_expander, [input_height, input_width])
+    normalized = tf.divide(tf.subtract(resized, [input_mean]), [input_std])
+    sess = tf.Session()
+    result = sess.run(normalized)
+
+    return result
+
+
+def load_labels(label_file):
+    label = []
+    proto_as_ascii_lines = tf.gfile.GFile(label_file).readlines()
+    for l in proto_as_ascii_lines:
+        label.append(l.rstrip())
+    return label
+
+
+def is_kid(image):
+	graph = load_graph(model_file)
+	t = read_tensor_from_image_file(
+	file_name=image,
+	input_height=input_height,
+	input_width=input_width,
+	input_mean=input_mean,
+	input_std=input_std)
+		
+	input_name = "import/" + input_layer
+	output_name = "import/" + output_layer
+	input_operation = graph.get_operation_by_name(input_name)
+	output_operation = graph.get_operation_by_name(output_name)
+
+	with tf.Session(graph=graph) as sess:
+		results = sess.run(output_operation.outputs[0], {
+			input_operation.outputs[0]: t
+		})
+	results = np.squeeze(results)
+
+	top_k = results.argsort()[-5:][::-1]
+	labels = load_labels(label_file)
+	# Return
+	kid = False
+	for i in top_k:
+		if labels[i] == 'kid' and results[i] >= 0.5:
+			kid = True
+	return kid
+
+
 
 
 def run(data):
@@ -124,6 +215,12 @@ def run(data):
 						for i, faceEncoding in enumerate(faceEncodings):
 							matchedFacesBool = face_recognition.compare_faces(knownFaceEncodings, faceEncoding, tolerance=0.4)
 							faceId = str(uuid.uuid4())
+							# Make a face
+							top, right, bottom, left = faceLocations[i]
+							personFace = image[top:bottom, left:right]
+							# Location where face is saved
+							saved_face_path = save_face_img(faceId, personFace, "face")
+
 							# Known Face
 							if True in matchedFacesBool:
 								matchedId = knownFaceIds[matchedFacesBool.index(True)]
@@ -139,17 +236,16 @@ def run(data):
 							else:
 								# Unknown Face, create new unknown person
 								name = "unknown"
-								newPersonObj = Model.Person(faceEncoding, name, group_id=group_id)
-								db.session.add(newPersonObj)
-								db.session.commit()
-								person_id = str(newPersonObj.id)
-								new_prsn_ids[person_id] = [ruby_image_id]
-							
-							# Make a face object and save to database with unknown name
-							top, right, bottom, left = faceLocations[i]
-							personFace = image[top:bottom, left:right]
+								if is_kid(saved_face_path):
+									newPersonObj = Model.Person(faceEncoding, name, group_id=group_id)
+									db.session.add(newPersonObj)
+									db.session.commit()
+									person_id = str(newPersonObj.id)
+									new_prsn_ids[person_id] = [ruby_image_id]
+								else:
+									print("Person is Adult!")
 
-
+							# Save face object to database with unknown name
 							faceFile = faceId + '.jpg'
 							faceImgPath = os.path.join(face_location, faceFile)
 							faceObj = Model.Face(faceId, photoObj.id, faceEncoding, int(person_id), faceImgPath, top, bottom, left , right)
@@ -162,7 +258,7 @@ def run(data):
 								personObj.default_face = faceObj.id
 								db.session.commit()
 						
-							save_face_img(faceId, personFace, "face")
+							
 		
 		image_response = {
 							"error_images": errorImages, 
