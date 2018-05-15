@@ -28,8 +28,10 @@ import pdb
 photo_location = app.config['LOCATION']
 face_location = app.config['FACE_LOCATION']
 # API call at /api/photo_detail_response
-# url = 'http://192.168.104.87:3001/api/v11/pictures/send_api_end_result'
-url = 'http://192.168.108.210:5000/api/photo_detail_response'
+url = 'http://192.168.104.87:3001/api/v11/pictures/send_api_end_result'
+# url = 'http://192.168.108.210:5000/api/photo_detail_response'
+
+
 # ------ Parameters for Prediction Model ----
 model_file = os.path.join(app.config['MODEL_FOLDER'], "output_graph.pb")
 label_file = os.path.join(app.config['MODEL_FOLDER'],"output_labels.txt")
@@ -39,10 +41,6 @@ input_mean = 0
 input_std = 255
 input_layer = "Placeholder"
 output_layer = "final_result"
-# --------------------------------------------
-url = 'http://192.168.104.87:3001/api/v11/pictures/send_api_end_result'
-# url = 'http://192.168.108.210:5000/api/photo_detail_response'
-
 
 # ----------- Generate Image from URL ---------------------
 def getImageFromURL(url):
@@ -245,13 +243,14 @@ def run(data):
 								name = "unknown"
 								if face_is_kid:
 									print('Person: Kid')
-									newPersonObj = Model.Person(faceEncoding, name, group_id=group_id)
-									db.session.add(newPersonObj)
-									db.session.commit()
-									person_id = str(newPersonObj.id)
-									new_prsn_ids[person_id] = [ruby_image_id]
+									newPersonObj = Model.Person(faceEncoding, name, group_id=group_id, is_kid=True)
 								else:
 									print("Person: Adult")
+									newPersonObj = Model.Person(faceEncoding, name, group_id=group_id)
+								db.session.add(newPersonObj)
+								db.session.commit()
+								person_id = str(newPersonObj.id)
+								new_prsn_ids[person_id] = [ruby_image_id]
 
 							# Save face object to database with unknown name
 							faceFile = faceId + '.jpg'
@@ -261,7 +260,7 @@ def run(data):
 							db.session.commit()
 
 							# if the person is new, set new face as its default
-							if not True in matchedFacesBool and face_is_kid: 
+							if not True in matchedFacesBool: 
 								personObj = db.session.query(Model.Person).filter_by(id=int(person_id)).first()
 								personObj.default_face = faceObj.id
 								db.session.commit()
@@ -275,8 +274,10 @@ def run(data):
 						}
 		image_res = jsonify(image_response)
 		print("=========== Sending Result ==================")
-		response = requests.post(url, data=image_res.data)
-		print(response.status_code)
+		print("url: " + url)
+		headers = {'Content-type': 'application/json', 'Accept': 'text/plain'}
+		response = requests.post(url, json=image_response, headers=headers)
+		print(response.json())
 		print("=========== Task Completed ==================")
 		return 'Task Completed'
 	

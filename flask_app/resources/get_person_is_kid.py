@@ -11,7 +11,7 @@ import os
 import numpy as np
 import tensorflow as tf
 import werkzeug
-
+import pdb
 # ------ Parameters for Prediction Model ----
 model_file = os.path.join(app.config['MODEL_FOLDER'], "output_graph.pb")
 label_file = os.path.join(app.config['MODEL_FOLDER'],"output_labels.txt")
@@ -70,6 +70,7 @@ def load_labels(label_file):
 class GetPersonIsKid(Resource):
     def post(self):
         data = dict(request.get_json(force=True))
+        pdb.set_trace()
         if len(data) > 0:
             graph = load_graph(model_file)
             t = read_tensor_from_image_file(
@@ -93,12 +94,13 @@ class GetPersonIsKid(Resource):
             top_k = results.argsort()[-5:][::-1]
             labels = load_labels(label_file)
             # Return
-            kid = False
+            kid = {}
             for i in top_k:
-                if labels[i] == 'kid' and results[i] >= 0.5:
-                    kid = True
-                    # print(labels[i], True)
-
+                # if labels[i] == 'kid' and results[i] >= 0.5:
+                #     kid = True
+                kid[labels[i]] = str(results[i])
+                print(labels[i], True)
+            pdb.set_trace()
             return jsonify({"status": 200,"kid": kid})
         else:
             return jsonify({"status": 406,"message": "please provide image"})
