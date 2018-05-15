@@ -23,8 +23,8 @@ import pdb
 photo_location = app.config['LOCATION']
 face_location = app.config['FACE_LOCATION']
 # API call at /api/photo_detail_response
-# url = 'http://192.168.104.87:3001/api/v11/pictures/send_api_end_result'
-url = 'http://192.168.108.210:5000/api/photo_detail_response'
+url = 'http://192.168.104.87:3001/api/v11/pictures/send_api_end_result'
+# url = 'http://192.168.108.210:5000/api/photo_detail_response'
 
 
 # ----------- Generate Image from URL ---------------------
@@ -60,7 +60,10 @@ def generate_md5(image_path):
 			hash_md5.update(chunk)
 	return hash_md5.hexdigest()
 
-
+##
+#
+# return {"person_id": {photo_id}}
+##
 def run(data):
 	if len(data) > 0:
 		new_prsn_ids = {}
@@ -172,5 +175,6 @@ def run(data):
 		image_res = jsonify(image_response)
 		response = requests.post(url, data=image_res.data)
 		print(response.status_code)
+		print("===========Task Completed==================")
 		return 'Task Completed'
 	
