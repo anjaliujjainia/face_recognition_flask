@@ -195,6 +195,7 @@ def run(data):
 					photoObj = db.session.query(Model.Photo).filter_by(image_hash=image_hash).first()
 					if photoObj:
 						# if image with the same hash exist, do not create new person faces
+						print("Image Already Exist, Returning Faces.")
 						imagesInDB.append(imageUrl)
 						existing_faces = db.session.query(Model.Face).filter_by(photo=photoObj.id).all()
 						for face in existing_faces:
@@ -226,7 +227,7 @@ def run(data):
 							personFace = image[top:bottom, left:right]
 							# Location where face is saved
 							saved_face_path = save_face_img(faceId, personFace, "face")
-
+							face_is_kid = is_kid(saved_face_path)
 							# Known Face
 							if True in matchedFacesBool:
 								matchedId = knownFaceIds[matchedFacesBool.index(True)]
@@ -242,14 +243,15 @@ def run(data):
 							else:
 								# Unknown Face, create new unknown person
 								name = "unknown"
-								if is_kid(saved_face_path):
+								if face_is_kid:
+									print('Person: Kid')
 									newPersonObj = Model.Person(faceEncoding, name, group_id=group_id)
 									db.session.add(newPersonObj)
 									db.session.commit()
 									person_id = str(newPersonObj.id)
 									new_prsn_ids[person_id] = [ruby_image_id]
 								else:
-									print("Person is Adult!")
+									print("Person: Adult")
 
 							# Save face object to database with unknown name
 							faceFile = faceId + '.jpg'
@@ -259,7 +261,7 @@ def run(data):
 							db.session.commit()
 
 							# if the person is new, set new face as its default
-							if not True in matchedFacesBool: 
+							if not True in matchedFacesBool and face_is_kid: 
 								personObj = db.session.query(Model.Person).filter_by(id=int(person_id)).first()
 								personObj.default_face = faceObj.id
 								db.session.commit()
@@ -272,8 +274,9 @@ def run(data):
 							"people": new_prsn_ids
 						}
 		image_res = jsonify(image_response)
+		print("=========== Sending Result ==================")
 		response = requests.post(url, data=image_res.data)
 		print(response.status_code)
-		print("===========Task Completed==================")
+		print("=========== Task Completed ==================")
 		return 'Task Completed'
 	

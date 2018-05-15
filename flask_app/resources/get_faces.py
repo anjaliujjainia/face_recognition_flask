@@ -2,7 +2,7 @@ import requests
 import pdb
 from rq import Queue
 # from worker import conn
-from .. import task_save_faces
+from . import task_save_faces
 from rq import push_connection, pop_connection, Queue
 from flask import Blueprint, render_template, request, jsonify, current_app, g, url_for
 import redis
