@@ -32,6 +32,7 @@ adult_face_location = face_location + "/adult_faces"
 # API call at /api/photo_detail_response
 url = 'http://192.168.104.87:3001/api/v11/pictures/send_api_end_result'
 # url = 'http://192.168.108.210:5000/api/photo_detail_response'
+# url = 'http://127.0.0.1:5000/api/photo_detail_response'
 
 
 # ------ Parameters for Prediction Model ----
@@ -152,8 +153,8 @@ def is_kid(image):
 	return kid
 
 
-
-
+def get_default_face():
+	return
 ##
 #
 # return {"person_id": {photo_id}}
@@ -224,6 +225,11 @@ def run(data):
 							faceId = str(uuid.uuid4())
 							# Make a face
 							top, right, bottom, left = faceLocations[i]
+							top = int(top - (bottom- top)*0.8)
+							bottom = int(bottom + (bottom- top)*0.3)
+							right = int((right-left)*0.7 + right)
+							left = int(left - (right-left)*0.6)
+							print("###########", top, right, bottom, left )
 							personFace = image[top:bottom, left:right]
 							# Location where face is saved
 							saved_face_path = save_face_img(faceId, personFace, "face")
