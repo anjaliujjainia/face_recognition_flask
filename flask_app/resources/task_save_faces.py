@@ -52,7 +52,7 @@ def getImageFromURL(url):
 
 # ----------- save image to local storage ---------------------
 def save_image(id, img, who='face'):
-	filename = "anjali_" + id  + ".jpeg"
+	filename = id  + ".jpeg"
 	if who == "photo":
 		img_path = os.path.join(photo_location, filename)
 	else:
