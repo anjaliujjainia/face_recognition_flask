@@ -4,9 +4,10 @@ class Config(object):
     """Parent configuration class."""
     DEBUG = False
     CSRF_ENABLED = True
-    SQLALCHEMY_DATABASE_URI = 'postgresql://postgres:test@localhost/face_recognition_db'
-    REDIS_URL = 'redis://localhost:6379'
-    FACE_LOCATION = '/run/user/1000/gvfs/smb-share:server=192.168.108.210,share=shares/face_images_anjali/'
+    # SQLALCHEMY_DATABASE_URI = 'postgresql://postgres:test@localhost/face_recognition_db'
+    SQLALCHEMY_DATABASE_URI = 'postgresql://postgres:test@localhost/face_recognition_db_ruby'
+    REDIS_URL = 'redis://localhost:6380'
+    FACE_LOCATION = '/run/user/1000/gvfs/smb-share:server=192.168.108.210,share=shares/face_images/'
     QUEUES = ['default']
 
 class DevelopmentConfig(Config):
