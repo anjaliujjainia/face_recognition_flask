@@ -5,5 +5,5 @@ import pdb
 class PhotoDetailResponse(Resource):
 	def post(self):
 		data = dict(request.get_json(force=True))
-		# print(data)
+		print(data)
 		return jsonify({"status": 200, "message":"Data recieved!"})

@@ -27,8 +27,6 @@ import pdb
 
 photo_location = app.config['LOCATION']
 face_location = app.config['FACE_LOCATION']
-kid_face_location = face_location + "/kid_faces"
-adult_face_location = face_location + "/adult_faces"
 # API call at /api/photo_detail_response
 url = 'http://192.168.104.87:3001/api/v11/pictures/send_api_end_result'
 # url = 'http://192.168.108.210:5000/api/photo_detail_response'
@@ -54,8 +52,8 @@ def getImageFromURL(url):
 	return img
 
 # ----------- save image to local storage ---------------------
-def save_face_img(id, img, who='face'):
-	filename = id  + ".jpeg"
+def save_image(id, img, who='face'):
+	filename = "anjali_" + id  + ".jpeg"
 	if who == "photo":
 		img_path = os.path.join(photo_location, filename)
 	else:
@@ -66,6 +64,7 @@ def save_face_img(id, img, who='face'):
 	try:
 		# saving the thumbnail of the face at img_path
 		if cv2.imwrite(img_path, img):
+			# pdb.set_trace()
 			return img_path
 	except:
 		print("Could not save " + who)
@@ -89,7 +88,7 @@ def load_graph(model_file):
 
     return graph
 
-
+# ---------------- Main Tensor ----------------
 def read_tensor_from_image_file(file_name, input_height=299, input_width=299, input_mean=0, input_std=255):
     input_name = "file_reader"
     output_name = "normalized"
@@ -122,7 +121,7 @@ def load_labels(label_file):
         label.append(l.rstrip())
     return label
 
-
+# ------------- Calling Function -------------
 def is_kid(image):
 	graph = load_graph(model_file)
 	t = read_tensor_from_image_file(
@@ -153,8 +152,6 @@ def is_kid(image):
 	return kid
 
 
-def get_default_face():
-	return
 ##
 #
 # return {"person_id": {photo_id}}
@@ -180,7 +177,7 @@ def run(data):
 				print('YAY! File Found and we are decoding it now') 
 				# ---------------------- SAVING IMAGE -----------------
 				photoId = str(uuid.uuid4())
-				img_local_path = save_face_img(photoId, img, who='photo')
+				img_local_path = save_image(photoId, img, who='photo')
 				# Hold url of images which were not readable
 				try:
 					image = face_recognition.load_image_file(img_local_path)
@@ -231,10 +228,16 @@ def run(data):
 							left = int(left - (right-left)*0.6)
 							print("###########", top, right, bottom, left )
 							personFace = image[top:bottom, left:right]
+							
 							# Location where face is saved
-							saved_face_path = save_face_img(faceId, personFace, "face")
+							saved_face_path = save_image(faceId, personFace, "face")
 							face_is_kid = is_kid(saved_face_path)
-
+							
+							# Delete adult faces
+							if not face_is_kid:
+								print("Adult face")
+								os.remove(saved_face_path)
+							
 							# only if kid face, create new face and person
 							if face_is_kid:
 								print('=========Kid Found!==========')
@@ -244,6 +247,9 @@ def run(data):
 									# person_id = matchedId
 									personObj = db.session.query(Model.Person).filter_by(id=matchedId).first()
 									personObj.update_average_face_encoding(faceEncoding)
+									# ------- He is the only person in the photo, set this face = Default face -------
+									if len(faceLocations) == 1:
+    										personObj.default_face = faceId
 									# db.session.commit()
 								else:
 									# Unknown Face, new unknown person
