@@ -30,7 +30,6 @@ face_location = app.config['FACE_LOCATION']
 # API call at /api/photo_detail_response
 url = 'http://192.168.104.87:3001/api/v11/pictures/send_api_end_result'
 # url = 'http://192.168.108.210:5000/api/photo_detail_response'
-# url = 'http://127.0.0.1:5000/api/photo_detail_response'
 
 
 # ------ Parameters for Prediction Model ----
@@ -218,7 +217,7 @@ def run(data):
 						# ------- End Photo ------
 						
 						for i, faceEncoding in enumerate(faceEncodings):
-							matchedFacesBool = face_recognition.compare_faces(knownFaceEncodings, faceEncoding, tolerance=0.4)
+							matchedFacesBool = face_recognition.compare_faces(knownFaceEncodings, faceEncoding, tolerance=0.7)
 							faceId = str(uuid.uuid4())
 							# Make a face
 							top, right, bottom, left = faceLocations[i]
@@ -243,6 +242,7 @@ def run(data):
 								print('=========Kid Found!==========')
 								# Known Face
 								if True in matchedFacesBool:
+									print("Person Already Exist")
 									matchedId = knownFaceIds[matchedFacesBool.index(True)]
 									# person_id = matchedId
 									personObj = db.session.query(Model.Person).filter_by(id=matchedId).first()
@@ -254,6 +254,7 @@ def run(data):
 								else:
 									# Unknown Face, new unknown person
 									name = "unknown"
+									print("New Person")
 									personObj = Model.Person(faceEncoding, name, group_id=group_id, is_kid=True)
 									db.session.add(personObj)
 								db.session.commit()
