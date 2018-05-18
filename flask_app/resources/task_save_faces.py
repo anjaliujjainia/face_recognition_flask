@@ -266,10 +266,6 @@ def run(data):
 									# person_id = matchedId
 									personObj = db.session.query(Model.Person).filter_by(id=matchedId).first()
 									personObj.update_average_face_encoding(faceEncoding)
-									# ------- He is the only person in the photo, set this face = Default face -------
-									if len(faceLocations) == 1:
-											personObj.default_face = faceId
-									# db.session.commit()
 								else:
 									# Unknown Face, new unknown person
 									name = "unknown"
@@ -290,11 +286,14 @@ def run(data):
 								db.session.add(faceObj)
 								db.session.commit()
 
-								# if the person is new, set new face as its default
-								if not True in matchedFacesBool: 
-									personObj = db.session.query(Model.Person).filter_by(id=int(person_id)).first()
+								personObj = db.session.query(Model.Person).filter_by(id=int(person_id)).first()
+								if True in matchedFacesBool and len(faceLocations) == 1:
+									# if person already exist then update its default_face
 									personObj.default_face = faceObj.id
-									db.session.commit()
+								else:
+									# if the person is new, set new face as its default
+									personObj.default_face = faceObj.id
+								db.session.commit()
 						
 							
 		
