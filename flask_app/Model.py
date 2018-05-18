@@ -39,14 +39,16 @@ class Person(db.Model):
     kid_id = db.Column(db.Integer, unique=True) ## --- Id of student in school ---
     is_kid = db.Column(db.Boolean) ## --- is person labeled (0-NO, 1-YES)---
     default_face = db.Column(db.ForeignKey('face.id')) ## --- is person labeled (0-NO, 1-YES)---
+    lazy_delete = db.Column(db.Boolean)
 
-    def __init__(self, mean_encoding, name, group_id=None, is_kid=False, kid_id = None, default_face = None):
+    def __init__(self, mean_encoding, name, group_id=None, is_kid=True, kid_id = None, default_face = None):
         self.name = name
         self.mean_encoding = mean_encoding
         self.group_id = group_id
         self.kid_id = kid_id
         self.is_kid = is_kid
         self.default_face = default_face
+        self.lazy_delete = False
     
     def __repr__(self):
         return '<Person %r>' % self.id

@@ -62,8 +62,8 @@ def save_image(id, img, who='face'):
 		img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 	try:
 		# saving the thumbnail of the face at img_path
+		# pdb.set_trace()
 		if cv2.imwrite(img_path, img):
-			# pdb.set_trace()
 			return img_path
 	except:
 		print("Could not save " + who)
@@ -77,48 +77,54 @@ def generate_md5(image_path):
 	return hash_md5.hexdigest()
 
 def load_graph(model_file):
-    graph = tf.Graph()
-    graph_def = tf.GraphDef()
+	graph = tf.Graph()
+	graph_def = tf.GraphDef()
 
-    with open(model_file, "rb") as f:
-        graph_def.ParseFromString(f.read())
-    with graph.as_default():
-        tf.import_graph_def(graph_def)
+	with open(model_file, "rb") as f:
+		graph_def.ParseFromString(f.read())
+	with graph.as_default():
+		tf.import_graph_def(graph_def)
 
-    return graph
+	return graph
 
 # ---------------- Main Tensor ----------------
 def read_tensor_from_image_file(file_name, input_height=299, input_width=299, input_mean=0, input_std=255):
-    input_name = "file_reader"
-    output_name = "normalized"
-    file_reader = tf.read_file(file_name, input_name)
-    if file_name.endswith(".png"):
-        image_reader = tf.image.decode_png(
-            file_reader, channels=3, name="png_reader")
-    elif file_name.endswith(".gif"):
-        image_reader = tf.squeeze(
-            tf.image.decode_gif(file_reader, name="gif_reader"))
-    elif file_name.endswith(".bmp"):
-        image_reader = tf.image.decode_bmp(file_reader, name="bmp_reader")
-    else:
-        image_reader = tf.image.decode_jpeg(
-            file_reader, channels=3, name="jpeg_reader")
-    float_caster = tf.cast(image_reader, tf.float32)
-    dims_expander = tf.expand_dims(float_caster, 0)
-    resized = tf.image.resize_bilinear(dims_expander, [input_height, input_width])
-    normalized = tf.divide(tf.subtract(resized, [input_mean]), [input_std])
-    sess = tf.Session()
-    result = sess.run(normalized)
+	input_name = "file_reader"
+	output_name = "normalized"
+	print(file_name)
+	try:
+		file_reader = tf.read_file(file_name, input_name)
+	except FileNotFoundError as e:
+		print(err)
+		print("Connect to share drive!")
+	else:
+		if file_name.endswith(".png"):
+			image_reader = tf.image.decode_png(
+				file_reader, channels=3, name="png_reader")
+		elif file_name.endswith(".gif"):
+			image_reader = tf.squeeze(
+				tf.image.decode_gif(file_reader, name="gif_reader"))
+		elif file_name.endswith(".bmp"):
+			image_reader = tf.image.decode_bmp(file_reader, name="bmp_reader")
+		else:
+			image_reader = tf.image.decode_jpeg(
+				file_reader, channels=3, name="jpeg_reader")
+		float_caster = tf.cast(image_reader, tf.float32)
+		dims_expander = tf.expand_dims(float_caster, 0)
+		resized = tf.image.resize_bilinear(dims_expander, [input_height, input_width])
+		normalized = tf.divide(tf.subtract(resized, [input_mean]), [input_std])
+		sess = tf.Session()
+		result = sess.run(normalized)
 
-    return result
+		return result
 
 
 def load_labels(label_file):
-    label = []
-    proto_as_ascii_lines = tf.gfile.GFile(label_file).readlines()
-    for l in proto_as_ascii_lines:
-        label.append(l.rstrip())
-    return label
+	label = []
+	proto_as_ascii_lines = tf.gfile.GFile(label_file).readlines()
+	for l in proto_as_ascii_lines:
+		label.append(l.rstrip())
+	return label
 
 # ------------- Calling Function -------------
 def is_kid(image):
@@ -177,9 +183,11 @@ def run(data):
 				# ---------------------- SAVING IMAGE -----------------
 				photoId = str(uuid.uuid4())
 				img_local_path = save_image(photoId, img, who='photo')
+
 				# Hold url of images which were not readable
 				try:
 					image = face_recognition.load_image_file(img_local_path)
+					width, height = image.shape[0], image.shape[1]
 					image_hash = generate_md5(img_local_path)
 					os.remove(img_local_path)
 				except FileNotFoundError as err:
@@ -219,13 +227,24 @@ def run(data):
 						for i, faceEncoding in enumerate(faceEncodings):
 							matchedFacesBool = face_recognition.compare_faces(knownFaceEncodings, faceEncoding, tolerance=0.7)
 							faceId = str(uuid.uuid4())
-							# Make a face
+
+							# Make a face and check for the boundary
+							# ######################################
 							top, right, bottom, left = faceLocations[i]
+							print("Top, Right, Bottom, Left", top, right, bottom, left )
 							top = int(top - (bottom- top)*0.8)
 							bottom = int(bottom + (bottom- top)*0.3)
 							right = int((right-left)*0.7 + right)
 							left = int(left - (right-left)*0.6)
-							print("###########", top, right, bottom, left )
+							if top <= 0:
+								top = 0
+							if bottom >= height:
+								bottom = height
+							if left <= 0:
+								left = 0
+							if right >= width:
+								right = width
+							print("Top, Right, Bottom, Left", top, right, bottom, left )
 							personFace = image[top:bottom, left:right]
 							
 							# Location where face is saved
@@ -249,13 +268,13 @@ def run(data):
 									personObj.update_average_face_encoding(faceEncoding)
 									# ------- He is the only person in the photo, set this face = Default face -------
 									if len(faceLocations) == 1:
-    										personObj.default_face = faceId
+											personObj.default_face = faceId
 									# db.session.commit()
 								else:
 									# Unknown Face, new unknown person
 									name = "unknown"
 									print("New Person")
-									personObj = Model.Person(faceEncoding, name, group_id=group_id, is_kid=True)
+									personObj = Model.Person(faceEncoding, name, group_id=group_id)
 									db.session.add(personObj)
 								db.session.commit()
 								person_id = personObj.id
