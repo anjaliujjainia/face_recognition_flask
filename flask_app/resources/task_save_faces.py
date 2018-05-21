@@ -171,7 +171,7 @@ def run(data):
 			ruby_image_id = image[0]                        #randrange(0, 100)#
 			imageUrl = image[1]["url"]
 			group_id = image[1]["group_id"]                         #randrange(0, 100)
-
+			print("======Ruby Image Id: " + str(ruby_image_id))
 			try:
 				img = getImageFromURL(imageUrl) # for url image
 			except urllib.error.URLError as err:
@@ -182,6 +182,7 @@ def run(data):
 				print('YAY! File Found and we are decoding it now') 
 				# ---------------------- SAVING IMAGE -----------------
 				photoId = str(uuid.uuid4())
+				print("======Flask Image Id: " + str(photoId))
 				img_local_path = save_image(photoId, img, who='photo')
 
 				# Hold url of images which were not readable
@@ -196,7 +197,6 @@ def run(data):
 					continue
 				else:
 					# -------- Photo ---------
-					print("======We sucessfully opened the file!==========")
 					photoObj = db.session.query(Model.Photo).filter_by(image_hash=image_hash).first()
 					if photoObj:
 						# if image with the same hash exist, do not create new person faces
@@ -225,7 +225,7 @@ def run(data):
 						# ------- End Photo ------
 						
 						for i, faceEncoding in enumerate(faceEncodings):
-							matchedFacesBool = face_recognition.compare_faces(knownFaceEncodings, faceEncoding, tolerance=0.7)
+							matchedFacesBool = face_recognition.compare_faces(knownFaceEncodings, faceEncoding, tolerance=0.4)
 							faceId = str(uuid.uuid4())
 
 							# Make a face and check for the boundary
@@ -302,11 +302,10 @@ def run(data):
 							"same_images": imagesInDB, 
 							"people": new_prsn_ids
 						}
-		print("=========== Sending Result ==================")
 		print("url: " + url)
 		headers = {'Content-type': 'application/json', 'Accept': 'text/plain'}
 		response = requests.post(url, json=image_response, headers=headers)
 		print(response.json())
-		print("=========== Task Completed ==================")
+		print("=========== Task Completed =========")
 		return 'Task Completed'
 	
