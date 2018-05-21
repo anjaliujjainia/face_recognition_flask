@@ -10,7 +10,7 @@ cron = CronTab(user=True)
 python_path = '~/DjangoProject/venv/bin/python'
 folder = '~/DjangoProject/face_recognition_flask/'
 file_name1 = folder + 'lazy_delete_people.py'
-file_name2 = 'update_similar_people.py'
+file_name2 = folder + 'update_similar_people.py'
 
 #add new cron job
 job = cron.new(command= python_path + ' ' + file_name1, comment='delete_lazy_people')
@@ -19,8 +19,8 @@ job.every().day()
 
 
 #add new cron job
-# job2 = cron.new(command= python_path + ' ' + file_name2, comment='update_similar_people')
+job2 = cron.new(command= python_path + ' ' + file_name2, comment='update_similar_people')
 # run every hour
-# job2.hour.every(1)
+job2.hour.every(1)
 
 cron.write()
