@@ -31,7 +31,7 @@ def main():
             knownFaceEncodings = [_[2] for _ in persons]
             knownFaceIds = [_[0] for _ in persons]
             for i, encoding in enumerate(knownFaceEncodings):
-                for j in range(i, len(knownFaceEncodings)):
+                for j in range(i+1, len(knownFaceEncodings)):
                     face_distance = face_recognition.face_distance([np.array(knownFaceEncodings[j])],
                     # Same Person
                     if face_distance < 0.6:
