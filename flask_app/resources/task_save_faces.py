@@ -188,7 +188,6 @@ def run(data):
 				# Hold url of images which were not readable
 				try:
 					image = face_recognition.load_image_file(img_local_path)
-					pdb.set_trace()
 					width, height = image.shape[1], image.shape[0]
 					image_hash = generate_md5(img_local_path)
 					os.remove(img_local_path)

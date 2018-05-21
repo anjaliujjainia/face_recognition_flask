@@ -3,7 +3,7 @@ from django.core.management.base import BaseCommand, CommandError
 from crontab import CronTab
 import os
 
-# os.environ.setdefault("DJANGO_SETTINGS_MODULE", "cair_project.settings")
+
 #init cron
 cron = CronTab(user=True)
 
