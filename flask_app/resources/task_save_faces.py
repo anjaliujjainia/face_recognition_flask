@@ -188,6 +188,7 @@ def run(data):
 				# Hold url of images which were not readable
 				try:
 					image = face_recognition.load_image_file(img_local_path)
+					pdb.set_trace()
 					width, height = image.shape[1], image.shape[0]
 					image_hash = generate_md5(img_local_path)
 					os.remove(img_local_path)
@@ -231,7 +232,7 @@ def run(data):
 							# Make a face and check for the boundary
 							# ######################################
 							top, right, bottom, left = faceLocations[i]
-							print("Top, Right, Bottom, Left", top, right, bottom, left )
+							# print("Top, Right, Bottom, Left", top, right, bottom, left )
 							top = int(top - (bottom- top)*0.8)
 							bottom = int(bottom + (bottom- top)*0.3)
 							right = int((right-left)*0.7 + right)
@@ -244,7 +245,7 @@ def run(data):
 								left = 0
 							if right >= width:
 								right = width
-							print("Top, Right, Bottom, Left", top, right, bottom, left )
+							# print("Top, Right, Bottom, Left", top, right, bottom, left )
 							personFace = image[top:bottom, left:right]
 							
 							# Location where face is saved
@@ -253,15 +254,15 @@ def run(data):
 							
 							# Delete adult faces
 							if not face_is_kid:
-								print("Adult face")
-								os.remove(saved_face_path)
+								print("===Adult Face===")
+								# os.remove(saved_face_path)
 							
 							# only if kid face, create new face and person
 							if face_is_kid:
-								print('=========Kid Found!==========')
+								print('===Kid Face===')
 								# Known Face
 								if True in matchedFacesBool:
-									print("Person Already Exist")
+									print("***Person Already Exist***")
 									matchedId = knownFaceIds[matchedFacesBool.index(True)]
 									# person_id = matchedId
 									personObj = db.session.query(Model.Person).filter_by(id=matchedId).first()
@@ -269,7 +270,7 @@ def run(data):
 								else:
 									# Unknown Face, new unknown person
 									name = "unknown"
-									print("New Person")
+									print("***New Person***")
 									personObj = Model.Person(faceEncoding, name, group_id=group_id)
 									db.session.add(personObj)
 								db.session.commit()
@@ -282,6 +283,7 @@ def run(data):
 								# Save face object to database with unknown name
 								faceFile = faceId + '.jpg'
 								faceImgPath = os.path.join(face_location, faceFile)
+								print("Face Image Path: " + faceImgPath)
 								faceObj = Model.Face(faceId, photoObj.id, faceEncoding, int(person_id), faceImgPath, top, bottom, left , right)
 								db.session.add(faceObj)
 								db.session.commit()
@@ -302,7 +304,7 @@ def run(data):
 							"same_images": imagesInDB, 
 							"people": new_prsn_ids
 						}
-		print("url: " + url)
+		print("\nURL: " + url)
 		headers = {'Content-type': 'application/json', 'Accept': 'text/plain'}
 		response = requests.post(url, json=image_response, headers=headers)
 		print(response.json())
