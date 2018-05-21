@@ -1,14 +1,18 @@
 import os
+from dotenv import load_dotenv, find_dotenv
+load_dotenv(find_dotenv())
+import pdb
 
 class Config(object):
     """Parent configuration class."""
     DEBUG = False
     CSRF_ENABLED = True
-    # SQLALCHEMY_DATABASE_URI = 'postgresql://postgres:test@localhost/face_recognition_db'
-    SQLALCHEMY_DATABASE_URI = 'postgresql://postgres:test@localhost/face_recognition_db_ruby'
-    REDIS_URL = 'redis://localhost:6380'
-    FACE_LOCATION = '/run/user/1000/gvfs/smb-share:server=192.168.108.210,share=shares/face_images/'
+    SQLALCHEMY_DATABASE_URI = os.environ.get("SQLALCHEMY_DATABASE_URI")
+    REDIS_URL = os.environ.get("REDIS_URL")
+    FACE_LOCATION = os.environ.get("FACE_LOCATION")
     QUEUES = ['default']
+    HOST = os.environ.get("HOST")
+    PORT = os.environ.get("PORT")
 
 class DevelopmentConfig(Config):
     """Configurations for Development."""
@@ -17,7 +21,7 @@ class DevelopmentConfig(Config):
 class TestingConfig(Config):
     """Configurations for Testing, with a separate test database."""
     TESTING = True
-    SQLALCHEMY_DATABASE_URI = 'postgresql://localhost/test_db'
+    SQLALCHEMY_DATABASE_URI = os.environ.get("SQLALCHEMY_DATABASE_TEST")
     DEBUG = True
 
 class StagingConfig(Config):

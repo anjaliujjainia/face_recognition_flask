@@ -12,9 +12,7 @@ migrate = Migrate(app, db)
 
 manager = Manager(app)
 manager.add_command('db', MigrateCommand)
-# manager.add_command("runserver", Server(host="192.168.108.210", port=5000))
-# manager.add_command("runserver", Server(host="127.0.0.1", port=5000))
-manager.add_command("runserver", Server(host="192.168.108.210", port=5001))
+manager.add_command("runserver", Server(host=app.config['HOST'], port=app.config['PORT']))
 
 @manager.command
 def runworker():

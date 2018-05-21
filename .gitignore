@@ -1,3 +1,9 @@
 flask_app/static
 images_database
+
+# Compiler files
 *.pyc
+
+
+#Ignoring envs
+.env
