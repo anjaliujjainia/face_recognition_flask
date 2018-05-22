@@ -32,7 +32,7 @@ def main():
             knownFaceIds = [_[0] for _ in persons]
             for i, encoding in enumerate(knownFaceEncodings):
                 for j in range(i+1, len(knownFaceEncodings)):
-                    face_distance = face_recognition.face_distance([np.array(knownFaceEncodings[j])],
+                    face_distance = face_recognition.face_distance([np.array(knownFaceEncodings[j])], np.array(encoding))
                     # Same Person
                     if face_distance < 0.6:
                         mean_encoding = update_mean_encoding(encoding, knownFaceEncodings[j])
@@ -44,6 +44,7 @@ def main():
                         conn.commit()
                         print("Person with id: {0} is converted to person with id: {1} and {2} rows in face table are affected.".format(knownFaceIds[j], knownFaceIds[i]))
                         break
+                    
         
         # Close communication with the PostgreSQL database
         cur.close()
@@ -53,7 +54,6 @@ def main():
         if conn is not None:
             conn.close()
  
-    return rows_deleted
 
 if __name__ == '__main__':
     main()
