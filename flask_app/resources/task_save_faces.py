@@ -211,13 +211,18 @@ def run(data):
 								new_prsn_ids[person_id]=[ruby_image_id]
 
 					else:
-						# person_query = db.session.query(Model.Person).all()
-						# knownFaceEncodings = [_.mean_encoding for _ in person_query]
-						# knownFaceIds = [_.id for _ in person_query]
+						person_query = db.session.query(Model.Person).all()
+						knownFaceEncodings = [_.mean_encoding for _ in person_query]
+						knownFaceIds = [_.id for _ in person_query]
 
-						allFaces = db.session.query(Model.Face).all()
-						knownFaceEncodings = [_.encoding for _ in allFaces]
-						knownFaceIds = [_.person for _ in allFaces]
+						# allFaces = db.session.query(Model.Face).all()
+						# knownFaceEncodings = [_.encoding for _ in allFaces]
+						# knownFaceIds = [_.person for _ in allFaces]
+
+						print("###### LEN ENCODING ## ", len(knownFaceEncodings))
+						print("###### LEN ID ## ", len(knownFaceIds))
+						print("###### LEN QUERY ## ", len(person_query))
+
 
 						# Locations of faces in photo
 						faceLocations = face_recognition.face_locations(image)
@@ -229,7 +234,13 @@ def run(data):
 						# ------- End Photo ------
 						
 						for i, faceEncoding in enumerate(faceEncodings):
-							matchedFacesBool = face_recognition.compare_faces(knownFaceEncodings, faceEncoding, tolerance=0.4)
+							# matchedFacesBool = face_recognition.compare_faces(knownFaceEncodings, faceEncoding, tolerance=0.4)
+							matchedDistance = list(face_recognition.face_distance(knownFaceEncodings, faceEncoding))
+							# Closest match we get
+							min_face_distance = min(matchedDistance)
+							# print("MATCHED FACE BOOl: ", str(matchedFacesBool))
+							print("MATCHED DISTANCE: ", str(matchedDistance))
+							print("MINIMUM DISTANCE: ", str(min_face_distance))
 							faceId = str(uuid.uuid4())
 
 							# Make a face and check for the boundary
@@ -254,6 +265,13 @@ def run(data):
 							# Location where face is saved
 							saved_face_path = save_image(faceId, personFace, "face")
 							face_is_kid = is_kid(saved_face_path)
+							# Setting person not exists
+							person_matched = False
+							# If we get closest match set person to kid and person matched - True
+							if min_face_distance < 0.4:
+								face_is_kid = True
+								person_matched = True
+
 							
 							# Delete adult faces
 							if not face_is_kid:
@@ -265,9 +283,9 @@ def run(data):
 								print('===Kid Face===')
 								
 								# Known Face
-								if True in matchedFacesBool:
+								if person_matched:
 									print("***Person Already Exist***")
-									matchedId = knownFaceIds[matchedFacesBool.index(True)]
+									matchedId = knownFaceIds[matchedDistance.index(min_face_distance)]
 									# person_id = matchedId
 									personObj = db.session.query(Model.Person).filter_by(id=matchedId).first()
 									personObj.update_average_face_encoding(faceEncoding)
@@ -293,7 +311,7 @@ def run(data):
 								db.session.commit()
 
 								personObj = db.session.query(Model.Person).filter_by(id=int(person_id)).first()
-								if True in matchedFacesBool and len(faceLocations) == 1:
+								if person_matched and len(faceLocations) == 1:
 									# if person already exist then update its default_face
 									personObj.default_face = faceObj.id
 								else:
