@@ -211,10 +211,14 @@ def run(data):
 								new_prsn_ids[person_id]=[ruby_image_id]
 
 					else:
-						person_query = db.session.query(Model.Person).all()
-						knownFaceEncodings = [_.mean_encoding for _ in person_query]
-						knownFaceIds = [_.id for _ in person_query]
-						
+						# person_query = db.session.query(Model.Person).all()
+						# knownFaceEncodings = [_.mean_encoding for _ in person_query]
+						# knownFaceIds = [_.id for _ in person_query]
+
+						allFaces = db.session.query(Model.Face).all()
+						knownFaceEncodings = [_.encoding for _ in allFaces]
+						knownFaceIds = [_.person for _ in allFaces]
+
 						# Locations of faces in photo
 						faceLocations = face_recognition.face_locations(image)
 						# Encodings of faces in photo
@@ -259,6 +263,7 @@ def run(data):
 							# only if kid face, create new face and person
 							if face_is_kid:
 								print('===Kid Face===')
+								
 								# Known Face
 								if True in matchedFacesBool:
 									print("***Person Already Exist***")
