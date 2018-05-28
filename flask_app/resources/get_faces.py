@@ -24,6 +24,8 @@ class GetFaces(Resource):
         conn = get_redis_connection()
         q = Queue(connection=conn)
         if len(task) > 0:
+            print("Printing task")
+            print(task)
             print("===========Enqueuing task!===========")
             job = q.enqueue(task_save_faces.run, task)
             return jsonify({"status": 202, "message": "Accepted"})#, {'Location': url_for('job_status', job_id=job.get_id())}

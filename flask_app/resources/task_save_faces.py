@@ -4,7 +4,6 @@ from __future__ import print_function
 
 from flask import request, jsonify, current_app
 from flask_restful import Resource, reqparse
-# from flask_app.Model import Face, Person, Photo
 from flask_app import Model
 from flask_app.app import db, app
 import requests
@@ -13,7 +12,6 @@ import cv2
 import uuid
 import werkzeug
 import numpy as np
-import tensorflow as tf
 from PIL import Image
 from random import randrange
 from skimage import io
@@ -23,7 +21,8 @@ from urllib.request import urlopen
 import urllib#.request import urlopen
 from werkzeug.utils import secure_filename
 import pdb
-
+from . import classify_kid_face 
+from . import train_faces
 
 photo_location = app.config['LOCATION']
 face_location = app.config['FACE_LOCATION']
@@ -32,18 +31,9 @@ url = 'http://192.168.104.87:3001/api/v11/pictures/send_api_end_result'
 # url = 'http://192.168.108.210:5000/api/photo_detail_response'
 
 
-# ------ Parameters for Prediction Model ----
-model_file = os.path.join(app.config['MODEL_FOLDER'], "output_graph.pb")
-label_file = os.path.join(app.config['MODEL_FOLDER'],"output_labels.txt")
-input_height = 299
-input_width = 299
-input_mean = 0
-input_std = 255
-input_layer = "Placeholder"
-output_layer = "final_result"
-
 # ----------- Generate Image from URL ---------------------
 def getImageFromURL(url):
+	# https://github.com/ageitgey/face_recognition/issues/442
 	req = urlopen(url)
 	arr = np.asarray(bytearray(req.read()), dtype="uint8")
 	img = cv2.imdecode(arr, 1)
@@ -76,92 +66,13 @@ def generate_md5(image_path):
 			hash_md5.update(chunk)
 	return hash_md5.hexdigest()
 
-def load_graph(model_file):
-	graph = tf.Graph()
-	graph_def = tf.GraphDef()
-
-	with open(model_file, "rb") as f:
-		graph_def.ParseFromString(f.read())
-	with graph.as_default():
-		tf.import_graph_def(graph_def)
-
-	return graph
-
-# ---------------- Main Tensor ----------------
-def read_tensor_from_image_file(file_name, input_height=299, input_width=299, input_mean=0, input_std=255):
-	input_name = "file_reader"
-	output_name = "normalized"
-	print(file_name)
-	try:
-		file_reader = tf.read_file(file_name, input_name)
-	except FileNotFoundError as e:
-		print(err)
-		print("Connect to share drive!")
-	else:
-		if file_name.endswith(".png"):
-			image_reader = tf.image.decode_png(
-				file_reader, channels=3, name="png_reader")
-		elif file_name.endswith(".gif"):
-			image_reader = tf.squeeze(
-				tf.image.decode_gif(file_reader, name="gif_reader"))
-		elif file_name.endswith(".bmp"):
-			image_reader = tf.image.decode_bmp(file_reader, name="bmp_reader")
-		else:
-			image_reader = tf.image.decode_jpeg(
-				file_reader, channels=3, name="jpeg_reader")
-		float_caster = tf.cast(image_reader, tf.float32)
-		dims_expander = tf.expand_dims(float_caster, 0)
-		resized = tf.image.resize_bilinear(dims_expander, [input_height, input_width])
-		normalized = tf.divide(tf.subtract(resized, [input_mean]), [input_std])
-		sess = tf.Session()
-		result = sess.run(normalized)
-
-		return result
-
-
-def load_labels(label_file):
-	label = []
-	proto_as_ascii_lines = tf.gfile.GFile(label_file).readlines()
-	for l in proto_as_ascii_lines:
-		label.append(l.rstrip())
-	return label
-
-# ------------- Calling Function -------------
-def is_kid(image):
-	graph = load_graph(model_file)
-	t = read_tensor_from_image_file(
-	file_name=image,
-	input_height=input_height,
-	input_width=input_width,
-	input_mean=input_mean,
-	input_std=input_std)
-		
-	input_name = "import/" + input_layer
-	output_name = "import/" + output_layer
-	input_operation = graph.get_operation_by_name(input_name)
-	output_operation = graph.get_operation_by_name(output_name)
-
-	with tf.Session(graph=graph) as sess:
-		results = sess.run(output_operation.outputs[0], {
-			input_operation.outputs[0]: t
-		})
-	results = np.squeeze(results)
-
-	top_k = results.argsort()[-5:][::-1]
-	labels = load_labels(label_file)
-	# Return
-	kid = False
-	for i in top_k:
-		if labels[i] == 'kid' and results[i] >= 0.5:
-			kid = True
-	return kid
-
 
 ##
 #
 # return {"person_id": {photo_id}}
 ##
 def run(data):
+	blah = train_faces.train_faces()
 	if len(data) > 0:
 		new_prsn_ids = {}
 		errorImages = {}
@@ -200,93 +111,77 @@ def run(data):
 					photoObj = db.session.query(Model.Photo).filter_by(image_hash=image_hash).first()
 					if photoObj:
 						# if image with the same hash exist, do not create new person faces
-						print("Image Already Exist, Returning Faces.")
+						print("Image Already Exist.")
 						imagesInDB.append(imageUrl)
 						existing_faces = db.session.query(Model.Face).filter_by(photo=photoObj.id).all()
 						for face in existing_faces:
-							person_id = face.person
+							# person_id = face.person
+							print("Returning Face: {0}",format(face.id))
+							'''
 							if person_id in new_prsn_ids.keys():
 								new_prsn_ids[person_id].append(ruby_image_id)
 							else:
 								new_prsn_ids[person_id]=[ruby_image_id]
+							'''
 
 					else:
-						person_query = db.session.query(Model.Person).all()
-						knownFaceEncodings = [_.mean_encoding for _ in person_query]
-						knownFaceIds = [_.id for _ in person_query]
-						
-						# Locations of faces in photo
-						faceLocations = face_recognition.face_locations(image)
-						# Encodings of faces in photo
-						faceEncodings = face_recognition.face_encodings(image, faceLocations)
+						# person_query = db.session.query(Model.Person).all()
+						# knownFaceEncodings = [_.mean_encoding for _ in person_query]
+						# knownFaceIds = [_.id for _ in person_query]
 						photoObj = Model.Photo(imageUrl, ruby_image_id, image_hash, "None", group_id)
 						db.session.add(photoObj)
 						db.session.commit()
-						# ------- End Photo ------
+						
+						
+						faceLocations = face_recognition.face_locations(image)
+						faceEncodings = face_recognition.face_encodings(image, faceLocations)
+						
 						
 						for i, faceEncoding in enumerate(faceEncodings):
-							matchedFacesBool = face_recognition.compare_faces(knownFaceEncodings, faceEncoding, tolerance=0.4)
+							# matchedFacesBool = face_recognition.compare_faces(knownFaceEncodings, faceEncoding, tolerance=0.4)
 							faceId = str(uuid.uuid4())
 
-							# Make a face and check for the boundary
-							# ######################################
-							top, right, bottom, left = faceLocations[i]
-							# print("Top, Right, Bottom, Left", top, right, bottom, left )
-							top = int(top - (bottom- top)*0.8)
-							bottom = int(bottom + (bottom- top)*0.3)
-							right = int((right-left)*0.7 + right)
-							left = int(left - (right-left)*0.6)
-							if top <= 0:
-								top = 0
-							if bottom >= height:
-								bottom = height
-							if left <= 0:
-								left = 0
-							if right >= width:
-								right = width
-							# print("Top, Right, Bottom, Left", top, right, bottom, left )
-							personFace = image[top:bottom, left:right]
+							# Updating person face
+							top, right, bottom, left = upgrade_face_boundary(faceLocations[i], height, width)
+							face_image = image[top:bottom, left:right]
 							
 							# Location where face is saved
-							saved_face_path = save_image(faceId, personFace, "face")
-							face_is_kid = is_kid(saved_face_path)
-							
-							# Delete adult faces
-							if not face_is_kid:
-								print("===Adult Face===")
-								# os.remove(saved_face_path)
+							saved_face_path = save_image(faceId, face_image, "face")
+							face_is_kid = classify_kid_face.is_kid(saved_face_path)
 							
 							# only if kid face, create new face and person
 							if face_is_kid:
 								print('===Kid Face===')
 								# Known Face
-								if True in matchedFacesBool:
-									print("***Person Already Exist***")
-									matchedId = knownFaceIds[matchedFacesBool.index(True)]
-									# person_id = matchedId
-									personObj = db.session.query(Model.Person).filter_by(id=matchedId).first()
-									personObj.update_average_face_encoding(faceEncoding)
-								else:
+								# if True in matchedFacesBool:
+								# 	print("***Person Already Exist***")
+								# 	matchedId = knownFaceIds[matchedFacesBool.index(True)]
+								# 	personObj = db.session.query(Model.Person).filter_by(id=matchedId).first()
+								# 	print("Person Id: " + str(matchedId))
+								# 	personObj.update_average_face_encoding(faceEncoding)
+								# else:
 									# Unknown Face, new unknown person
-									name = "unknown"
-									print("***New Person***")
-									personObj = Model.Person(faceEncoding, name, group_id=group_id)
-									db.session.add(personObj)
+								print("***New Person***")
+								personObj = Model.Person(name="unknown", group_id=group_id)
+								db.session.add(personObj)
 								db.session.commit()
 								person_id = personObj.id
 
+								'''
 								if person_id in new_prsn_ids.keys():
 									new_prsn_ids[person_id].append(ruby_image_id)
 								else:
 									new_prsn_ids[person_id]=[ruby_image_id]
-								# Save face object to database with unknown name
-								faceFile = faceId + '.jpg'
-								faceImgPath = os.path.join(face_location, faceFile)
-								print("Face Image Path: " + faceImgPath)
-								faceObj = Model.Face(faceId, photoObj.id, faceEncoding, int(person_id), faceImgPath, top, bottom, left , right)
+								'''
+
+								# face object
+								print("Face Image Path: " + saved_face_path)
+								faceEncoding = faceEncoding.tobytes().hex()
+								faceObj = Model.Face(faceId, photoObj.id, faceEncoding, int(person_id), saved_face_path, top, bottom, left , right)
 								db.session.add(faceObj)
 								db.session.commit()
 
+								'''
 								personObj = db.session.query(Model.Person).filter_by(id=int(person_id)).first()
 								if True in matchedFacesBool and len(faceLocations) == 1:
 									# if person already exist then update its default_face
@@ -295,18 +190,36 @@ def run(data):
 									# if the person is new, set new face as its default
 									personObj.default_face = faceObj.id
 								db.session.commit()
-						
+								'''
+							else:
+								print("===Adult Face===")
+								# os.remove(saved_face_path)
 							
 		
 		image_response = {
 							"error_images": errorImages, 
-							"same_images": imagesInDB, 
-							"people": new_prsn_ids
+							"same_images": imagesInDB
+							# "people": new_prsn_ids
 						}
 		print("\nURL: " + url)
+		
 		headers = {'Content-type': 'application/json', 'Accept': 'text/plain'}
 		response = requests.post(url, json=image_response, headers=headers)
 		print(response.json())
 		print("=========== Task Completed =========")
 		return 'Task Completed'
+
+
+def upgrade_face_boundary(faceLocation, height, width):
+	top, right, bottom, left = faceLocation
+	top = int(top - (bottom- top)*0.8)
+	bottom = int(bottom + (bottom- top)*0.3)
+	right = int((right-left)*0.7 + right)
+	left = int(left - (right-left)*0.6)
 	
+	# checking boundaries
+	top = 0 if top <= 0 else top
+	bottom = height if bottom >= height else bottom
+	left = 0 if left <= 0 else left
+	right = width if right >= width else right
+	return top, right, bottom , left

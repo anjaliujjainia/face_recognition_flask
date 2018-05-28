@@ -15,6 +15,7 @@ def delete_part():
         conn = psycopg2.connect(database)
         # create a new cursor
         cur = conn.cursor()
+        pdb.set_trace()
         cur.execute("DELETE FROM person WHERE lazy_delete=TRUE")
         # get the number of updated rows
         rows_deleted = cur.rowcount

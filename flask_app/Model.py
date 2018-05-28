@@ -34,14 +34,15 @@ class Photo(db.Model):
 class Person(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(128)) ## --- Name of Person ---
-    mean_encoding = db.Column(ARRAY(db.Float)) ## --- Mean Encoding of face ---
+    # mean_encoding = db.Column(ARRAY(db.Float)) ## --- Mean Encoding of face ---
+    mean_encoding = db.Column(db.String(9999))
     group_id = db.Column(db.Integer) ## --- From which group/school ---
     kid_id = db.Column(db.Integer, unique=True) ## --- Id of student in school ---
     is_kid = db.Column(db.Boolean) ## --- is person labeled (0-NO, 1-YES)---
     default_face = db.Column(db.ForeignKey('face.id')) ## --- is person labeled (0-NO, 1-YES)---
     lazy_delete = db.Column(db.Boolean)
 
-    def __init__(self, mean_encoding, name, group_id=None, is_kid=True, kid_id = None, default_face = None):
+    def __init__(self, name, mean_encoding=None, group_id=None, is_kid=True, kid_id = None, default_face = None):
         self.name = name
         self.mean_encoding = mean_encoding
         self.group_id = group_id
@@ -54,20 +55,23 @@ class Person(db.Model):
         return '<Person %r>' % self.id
 
     # change function accorning to need
-    def update_average_face_encoding(self, face_encoding):
-        myself = self.mean_encoding
-        encodings = []
-        encodings.append(myself)
-        encodings.append(face_encoding)
+    def _update_average_face_encoding(self):
+        faces = db.session.query(Face).filter_by(person = self.id).all()
+        # encodings = [_.encoding for _ in faces]
+        for face in faces:
+            r = base64.b64decode(face.encoding)
+            encoding = np.frombuffer(r,dtype=np.float64)
+            encodings.append(encoding)
         mean_encoding = np.array(encodings).mean(axis=0)
-        self.mean_encoding = list(mean_encoding)
+        # self.mean_encoding = list(mean_encoding)
+        self.mean_encoding = base64.encodebytes(mean_encoding.tostring())
 
 class Face(db.Model):
     id = db.Column(db.String(64), primary_key=True)
     # face_id = db.Column(db.String(64))
     photo = db.Column(db.ForeignKey('photo.id')) ## --- photo from where this face is taken from (Photo.id) ---
-    # face_embedding = db.Column(ARRAY(db.Float))
-    encoding = db.Column(ARRAY(db.Float)) ## --- Features of image ---
+    # encoding = db.Column(ARRAY(db.Float)) ## --- Features of image ---
+    encoding = db.Column(db.String(9999)) ## --- Features of image ---
     person = db.Column(db.Integer, db.ForeignKey('person.id')) ## --- Who's face is this (Person.id) ---
     face_is_labeled = db.Column(db.Boolean) ## --- If face is just a relation(from tag kid)
     image_path = db.Column(db.String(1024)) ## --- Path of face on our server ---
