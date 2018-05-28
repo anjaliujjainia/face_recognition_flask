@@ -226,6 +226,7 @@ def run(data):
 
 						# Locations of faces in photo
 						faceLocations = face_recognition.face_locations(image)
+						print("###### FACES IN PHOTO ## ", len(faceLocations))
 						# Encodings of faces in photo
 						faceEncodings = face_recognition.face_encodings(image, faceLocations)
 						photoObj = Model.Photo(imageUrl, ruby_image_id, image_hash, "None", group_id)
@@ -233,11 +234,14 @@ def run(data):
 						db.session.commit()
 						# ------- End Photo ------
 						
+						min_face_distance = -9999
+
 						for i, faceEncoding in enumerate(faceEncodings):
 							# matchedFacesBool = face_recognition.compare_faces(knownFaceEncodings, faceEncoding, tolerance=0.4)
 							matchedDistance = list(face_recognition.face_distance(knownFaceEncodings, faceEncoding))
 							# Closest match we get
-							min_face_distance = min(matchedDistance)
+							if len(knownFaceEncodings) > 0:
+								min_face_distance = min(matchedDistance)
 							# print("MATCHED FACE BOOl: ", str(matchedFacesBool))
 							print("MATCHED DISTANCE: ", str(matchedDistance))
 							print("MINIMUM DISTANCE: ", str(min_face_distance))
@@ -283,7 +287,7 @@ def run(data):
 								print('===Kid Face===')
 								
 								# Known Face
-								if person_matched:
+								if person_matched and min_face_distance > 0:
 									print("***Person Already Exist***")
 									matchedId = knownFaceIds[matchedDistance.index(min_face_distance)]
 									# person_id = matchedId
