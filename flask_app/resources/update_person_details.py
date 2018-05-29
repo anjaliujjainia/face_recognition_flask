@@ -17,15 +17,16 @@ class UpdatePersonDetails(Resource):
             # original person
             o_person = db.session.query(Model.Person).filter_by(kid_id=kid_id).first()
             person = db.session.query(Model.Person).filter_by(id=person_id).first()                                  
-            if o_person and o_person_id != person_id:
+            if o_person:
                 o_person_id = o_person.id
-                msg =  person_name + " with the kid_id :: " + str(kid_id) +" already exist. Updating :: " + o_person_id
-                o_person.name = person_name
-                # get all the faces of the person_id
-                faces = db.session.query(Model.Face).filter_by(person=person_id).all()
-                for face in faces:
-                    face.person = o_person_id
-                person.lazy_delete = True
+                if o_person_id != person_id:
+                    msg =  person_name + " with the kid_id :: " + str(kid_id) +" already exist. Updating person id to :: " + str(o_person_id)
+                    o_person.name = person_name
+                    # get all the faces of the person_id
+                    faces = db.session.query(Model.Face).filter_by(person=person_id).all()
+                    for face in faces:
+                        face.person = o_person_id
+                    person.lazy_delete = True
             else:
                 msg = str(person_id) + " is updated with person name as " + person_name + " and kid id as " + str(kid_id)
                 person.name = person_name
