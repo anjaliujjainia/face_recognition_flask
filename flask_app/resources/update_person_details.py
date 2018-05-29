@@ -16,10 +16,9 @@ class UpdatePersonDetails(Resource):
             # check if any person with the same kid_id exist
             # original person
             o_person = db.session.query(Model.Person).filter_by(kid_id=kid_id).first()
-            o_person_id = o_person.id
-            person = db.session.query(Model.Person).filter_by(id=person_id).first()
-            
+            person = db.session.query(Model.Person).filter_by(id=person_id).first()                                  
             if o_person and o_person_id != person_id:
+                o_person_id = o_person.id
                 msg =  person_name + " with the kid_id :: " + str(kid_id) +" already exist. Updating :: " + o_person_id
                 o_person.name = person_name
                 # get all the faces of the person_id
