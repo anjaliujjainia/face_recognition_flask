@@ -37,6 +37,7 @@ from flask_app.resources.manual_tag_kid import ManualTagKid
 from flask_app.resources.manual_untag_kid import ManualUntagKid
 from flask_app.resources.photo_detail_response import PhotoDetailResponse
 from flask_app.resources.get_person_is_kid import GetPersonIsKid
+from flask_app.resources.extra_verify_single_face import VerifySingleFace
 
 # [POST] send a list of photos and it returns all the known or already existing faces with urls
 api.add_resource(GetFaces, '/api/get_faces')
@@ -54,3 +55,5 @@ api.add_resource(ManualUntagKid, '/api/manual_untag_kid')
 api.add_resource(PhotoDetailResponse, '/api/photo_detail_response')
 # [POST] Check if person in image is Kid or Adult
 api.add_resource(GetPersonIsKid, '/api/get_person_is_kid')
+# [POST] Check if image has only one person
+api.add_resource(VerifySingleFace, '/api/verify_single_face')
