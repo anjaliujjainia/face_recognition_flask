@@ -81,7 +81,9 @@ class Face(db.Model):
     location_left = db.Column(db.Integer) ## --- Location of face in photo ---
     location_right = db.Column(db.Integer) ## --- Location of face in photo ---
 
-    def __init__(self, f_uuid, photo_id, encoding, person, image_path, location_top, location_bottom, location_left, location_right, face_is_labeled = False):
+    person_label_is_inferred = db.Column(db.Boolean)
+
+    def __init__(self, f_uuid, photo_id, encoding, person, image_path, location_top, location_bottom, location_left, location_right, face_is_labeled = False, person_label_is_inferred=False):
         self.id = f_uuid
         self.photo = photo_id
         self.encoding = encoding
@@ -93,6 +95,7 @@ class Face(db.Model):
         self.location_left = location_left
         self.location_right = location_right
         self.face_is_labeled = face_is_labeled
+        self.person_label_is_inferred = person_label_is_inferred
 
     
     def __repr__(self):

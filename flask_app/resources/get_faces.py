@@ -27,7 +27,7 @@ class GetFaces(Resource):
             print("Printing task")
             print(task)
             print("===========Enqueuing task!===========")
-            job = q.enqueue(task_save_faces.run, task)
+            job = q.enqueue(task_save_faces.run, task, timeout=800)
             return jsonify({"status": 202, "message": "Accepted"})#, {'Location': url_for('job_status', job_id=job.get_id())}
         else:
             return jsonify({"status": 406, "message": "Please Provide Data!"})
