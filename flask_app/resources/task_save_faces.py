@@ -92,12 +92,12 @@ def run(data):
 							faceId = str(uuid.uuid4())
 
 							# Updating person face
-							top, right, bottom, left = upgrade_face_boundary(faceLocations[i], height, width)
+							top, right, bottom, left = utils.upgrade_face_boundary(faceLocations[i], height, width)
 							face_image = image[top:bottom, left:right]
 							
 							# Location where face is saved
 							saved_face_path = utils.save_image(faceId, face_image, "face")
-							face_is_kid = classify_kid_face.is_kid(saved_face_path)
+							face_is_kid = util_classify_kid_face.is_kid(saved_face_path)
 							
 							# only if kid face, create new face and person
 							if face_is_kid:
@@ -112,6 +112,12 @@ def run(data):
 								faceEncoding = faceEncoding.tobytes().hex()
 								faceObj = Model.Face(faceId, photoObj.id, faceEncoding, int(person_id), saved_face_path, top, bottom, left , right)
 								db.session.add(faceObj)
+								db.session.commit()
+
+
+								# updating existing person to have a default face
+								personObj = db.session.query(Model.Person).filter_by(id=person_id)
+								personObj.default_face = faceId
 								db.session.commit()
 							else:
 								print("===Adult Face===")
@@ -131,18 +137,3 @@ def run(data):
 		print(response.json())
 		print("=========== Task Completed =========")
 		return 'Task Completed'
-
-
-def upgrade_face_boundary(faceLocation, height, width):
-	top, right, bottom, left = faceLocation
-	top = int(top - (bottom- top)*0.8)
-	bottom = int(bottom + (bottom- top)*0.3)
-	right = int((right-left)*0.7 + right)
-	left = int(left - (right-left)*0.6)
-	
-	# checking boundaries
-	top = 0 if top <= 0 else top
-	bottom = height if bottom >= height else bottom
-	left = 0 if left <= 0 else left
-	right = width if right >= width else right
-	return top, right, bottom , left

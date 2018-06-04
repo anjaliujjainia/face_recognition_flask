@@ -4,15 +4,16 @@ import numpy as np
 from datetime import datetime as dt
 from flask_app import Model
 import pdb
-
+import pickle
 # mlp_classifier_pkl_file = app.config['PKL_FILE']
-mlp_classifier_pkl_file = 'classifier/mlp_classifier.pkl'
+mlp_classifier_pkl_file = app.config['DIR'] + '/classifier/mlp_classifier.pkl'
 
 
 def train():
 	mlp_classifier_model_pkl = None
 	try:
 		# open pickle of already existing model
+		print("Opening File Location :: " + mlp_classifier_pkl_file)
 		mlp_classifier_model_pkl = open(mlp_classifier_pkl_file, 'rb')
 	except FileNotFoundError as err:
 		print(err)
@@ -52,7 +53,7 @@ def train():
 			training_faces_encoding.append(face_encoding)
 			training_person_id.append(face_person)
 		else:
-			unknown_faces_id.append()
+			unknown_faces_id.append(face_id)
 			unknown_faces[face_id] = {}
 			unknown_faces[face_id]['encoding'] = face_encoding
 			unknown_faces[face_id]['person'] = face_person
@@ -64,7 +65,6 @@ def train():
 
 		face_encodings_known = np.array([f for f in training_faces_encoding])
 		person_ids_known = np.array([f for f in training_person_id])
-		pdb.set_trace()
 		clf.fit(face_encodings_known, person_ids_known)
 
 
@@ -73,13 +73,17 @@ def train():
 		encoding = unknown_faces[face_id]['encoding']
 		person = unknown_faces[face_id]['person']
 
-		pred_person = clf.predict(encoding)[0] 
-		probs = np.max(clf.predict_proba(encoding), 1)[0] 
+		pred_person = clf.predict([encoding])[0] 
+		probs = np.max(clf.predict_proba([encoding]), 1)[0] 
 		pdb.set_trace()
 		if probs > 0.7:
+			pdb.set_trace()
 			face = db.session.query(Model.Face).filter_by(id=face_id).first()
-			face.person = pred_person
+			face.person = int(pred_person)
 			face.person_label_is_inferred = True
+			# get the original person and set lazy delete true
+			person = db.session.query(Model.Person).filter_by(id=person).first()
+			person.lazy_delete = True
 			db.session.commit()
 		else:
 			# add it to training data and train the model
@@ -91,6 +95,13 @@ def train():
 			pdb.set_trace()
 			clf.fit(face_encodings_known, person_ids_known)
 
+	if not new_model:
+		mlp_classifier_model_pkl.close()
+	try:
+		# open pickle of already existing model
+		mlp_classifier_model_pkl = open(mlp_classifier_pkl_file, 'w+b')
+	except FileNotFoundError as err:
+		print(err)
 	pickle.dump(clf, mlp_classifier_model_pkl)
 	mlp_classifier_model_pkl.close()
 

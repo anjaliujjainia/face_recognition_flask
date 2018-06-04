@@ -21,6 +21,7 @@ app = Flask(__name__)
 app.config.from_object('instance.config.DevelopmentConfig')
 app.config.from_pyfile('../instance/config.py')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['DIR'] = DIR
 app.config['LOCATION'] = LOCATION
 app.config['MODEL_FOLDER'] = MODEL_FOLDER
 
