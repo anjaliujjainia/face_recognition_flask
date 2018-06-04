@@ -211,17 +211,17 @@ def run(data):
 								new_prsn_ids[person_id]=[ruby_image_id]
 
 					else:
-						person_query = db.session.query(Model.Person).all()
-						knownFaceEncodings = [_.mean_encoding for _ in person_query]
-						knownFaceIds = [_.id for _ in person_query]
+						# person_query = db.session.query(Model.Person).all()
+						# knownFaceEncodings = [_.mean_encoding for _ in person_query]
+						# knownFaceIds = [_.id for _ in person_query]
 
-						# allFaces = db.session.query(Model.Face).all()
-						# knownFaceEncodings = [_.encoding for _ in allFaces]
-						# knownFaceIds = [_.person for _ in allFaces]
+						allFaces = db.session.query(Model.Face).all()
+						knownFaceEncodings = [_.encoding for _ in allFaces]
+						knownFaceIds = [_.person for _ in allFaces]
 
 						print("###### LEN ENCODING ## ", len(knownFaceEncodings))
 						print("###### LEN ID ## ", len(knownFaceIds))
-						print("###### LEN QUERY ## ", len(person_query))
+						print("###### LEN QUERY ## ", len(allFaces))
 
 
 						# Locations of faces in photo
@@ -272,10 +272,12 @@ def run(data):
 							# Setting person not exists
 							person_matched = False
 							# If we get closest match set person to kid and person matched - True
-							if min_face_distance < 0.4:
+							# ---------------------------------------------------------------------
+							if min_face_distance < 0.465:
 								face_is_kid = True
 								person_matched = True
-
+							
+							#----------------------------------------------------------------------
 							
 							# Delete adult faces
 							if not face_is_kid:
