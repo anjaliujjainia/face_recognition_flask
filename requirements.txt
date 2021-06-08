@@ -27,7 +27,7 @@ olefile==0.44
 pandas==0.22.0
 pexpect==4.2.1
 pickleshare==0.7.4
-Pillow==4.1.1
+Pillow==8.2.0
 pipreqs==0.4.7
 prompt-toolkit==1.0.14
 psycopg2==2.7.1
